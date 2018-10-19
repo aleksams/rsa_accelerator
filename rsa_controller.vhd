@@ -2,9 +2,9 @@
 -- Company: 
 -- Engineer: 
 -- 
--- Create Date: 15.10.2018 10:20:03
+-- Create Date: 19.10.2018 15:14:55
 -- Design Name: 
--- Module Name: rsa_core - Behavioral
+-- Module Name: rsa_controller - Behavioral
 -- Project Name: 
 -- Target Devices: 
 -- Tool Versions: 
@@ -31,17 +31,18 @@ use IEEE.STD_LOGIC_1164.ALL;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-entity modular_exponentiation is
-    Port ( M        : in STD_ULOGIC_VECTOR (255 downto 0);
-           E        : in STD_ULOGIC_VECTOR (255 downto 0);
-           n        : in STD_ULOGIC_VECTOR (255 downto 0);
-           r_mod_n  : in STD_ULOGIC_VECTOR (255 downto 0);
-           clk      : in STD_ULOGIC;
-           done     : out STD_ULOGIC;
-           C        : out STD_ULOGIC_VECTOR (255 downto 0));
-end modular_exponentiation;
+entity rsa_controller is
+    Port ( data_in_valid : in STD_LOGIC;
+           data_in_ready : out STD_LOGIC;
+           data_out_valid : out STD_LOGIC;
+           data_out_ready : in STD_LOGIC;
+           mem_write : in STD_LOGIC;
+           mem_ready : out STD_LOGIC;
+           mem_addr : in STD_LOGIC_VECTOR (4 downto 0);
+           mem_data : in STD_LOGIC_VECTOR (31 downto 0));
+end rsa_controller;
 
-architecture Behavioral of modular_exponentiation is
+architecture Behavioral of rsa_controller is
 
 begin
 
