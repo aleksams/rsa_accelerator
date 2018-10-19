@@ -24,4 +24,4 @@ Design of RSA hardware accelerator
   
 * shift_reg: 
 
-  Shift register. Might split into shift_left_reg and shift_right_reg instead of on that does both.
+  Shift register. Might split into shift_left_reg and shift_right_reg instead of one that does both.
