@@ -1,4 +1,4 @@
-# rsa_accelerator
+# RSA Accelerator
 Design of RSA hardware accelerator
 
 ## Contents
