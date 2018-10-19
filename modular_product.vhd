@@ -36,8 +36,8 @@ entity modular_product is
     Port ( A     : in STD_ULOGIC_VECTOR (255 downto 0);
            B     : in STD_ULOGIC_VECTOR (255 downto 0);
            n     : in STD_ULOGIC_VECTOR (255 downto 0);
-           done  : in STD_ULOGIC;
            clk   : in STD_ULOGIC;
+           done  : out STD_ULOGIC;
            u     : out STD_ULOGIC_VECTOR (255 downto 0));
 end modular_product;
 
