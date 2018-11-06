@@ -32,18 +32,44 @@ use IEEE.STD_LOGIC_1164.ALL;
 --use UNISIM.VComponents.all;
 
 entity modular_exponentiation is
-    Port ( M        : in STD_ULOGIC_VECTOR (255 downto 0);
-           E        : in STD_ULOGIC_VECTOR (255 downto 0);
-           n        : in STD_ULOGIC_VECTOR (255 downto 0);
-           r_mod_n  : in STD_ULOGIC_VECTOR (255 downto 0);
-           clk      : in STD_ULOGIC;
-           done     : out STD_ULOGIC;
-           C        : out STD_ULOGIC_VECTOR (255 downto 0));
+    Port ( 
+           -- to MonPro
+           message       : in STD_ULOGIC_VECTOR (255 downto 0);
+           key           : in STD_ULOGIC_VECTOR (255 downto 0);
+           modulo        : in STD_ULOGIC_VECTOR (255 downto 0);
+           r_mod_n       : in STD_ULOGIC_VECTOR (255 downto 0);
+           r2_mod_n      : in STD_ULOGIC_VECTOR (255 downto 0);
+
+           clk           : in STD_ULOGIC;
+           done          : out STD_ULOGIC;
+           cipher        : out STD_ULOGIC_VECTOR (255 downto 0));
 end modular_exponentiation;
 
 architecture Behavioral of modular_exponentiation is
 
+signal monPro_start : STD_ULOGIC;
+signal monPro_done  : STD_ULOGIC;
+signal A_next       : STD_ULOGIC;
+signal B_next       : STD_ULOGIC;
+signal product_reg  : STD_ULOGIC_VECTOR(255 downto 0);
+
 begin
 
+  -- Instantiate the Monpro
+  u_Monpro : entity work.Monpro port map(
+    -- Clocks and resets
+    clk             => clk,
+    -- Signals
+    start           => monPro_start,
+    done            => monPro_done,
+    -- Inputs
+    A               => A_next,
+    B               => B_next,
+    modulo          => modulo,
+    -- Outputs
+    product         => product_reg
+  );
+
+  
 
 end Behavioral;
