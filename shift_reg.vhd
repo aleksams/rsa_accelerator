@@ -33,21 +33,27 @@ use WORK.ALL;
 --use UNISIM.VComponents.all;
 
 entity shift_reg is
-    Port ( d_in  : in STD_ULOGIC_VECTOR (255 downto 0);
-           d_out : buffer STD_ULOGIC_VECTOR (255 downto 0);
-           rst   : in STD_ULOGIC;
-           clk   : in STD_ULOGIC;
-           load  : in STD_ULOGIC;
-           sin   : in STD_ULOGIC;
-           left  : in STD_ULOGIC;
-           right : in STD_ULOGIC);
+    Port ( d_in  : in STD_LOGIC_VECTOR (255 downto 0);
+           d_out : buffer STD_LOGIC_VECTOR (255 downto 0);
+           rst   : in STD_LOGIC;
+           clk   : in STD_LOGIC;
+           load  : in STD_LOGIC);
 end shift_reg;
 
 architecture Behavioral of shift_reg is
 
 begin
-    process(all) begin
-        
+    process(clk, load, rst, d_in) begin
+        if(rst='1') then
+            d_out <= (others => '0');
+        elsif(clk'event and clk='1') then
+            if(load='1') then
+                d_out <= d_in;
+            else
+                d_out(254 downto 0) <= d_out(255 downto 1);
+                d_out(255) <= '0';
+            end if;
+        end if;
     end process;
 
 end Behavioral;

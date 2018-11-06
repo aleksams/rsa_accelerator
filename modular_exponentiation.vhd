@@ -32,13 +32,13 @@ use IEEE.STD_LOGIC_1164.ALL;
 --use UNISIM.VComponents.all;
 
 entity modular_exponentiation is
-    Port ( M        : in STD_ULOGIC_VECTOR (255 downto 0);
-           E        : in STD_ULOGIC_VECTOR (255 downto 0);
-           n        : in STD_ULOGIC_VECTOR (255 downto 0);
-           r_mod_n  : in STD_ULOGIC_VECTOR (255 downto 0);
-           clk      : in STD_ULOGIC;
-           done     : out STD_ULOGIC;
-           C        : out STD_ULOGIC_VECTOR (255 downto 0));
+    Port ( M        : in STD_LOGIC_VECTOR (255 downto 0);
+           E        : in STD_LOGIC_VECTOR (255 downto 0);
+           n        : in STD_LOGIC_VECTOR (255 downto 0);
+           r_mod_n  : in STD_LOGIC_VECTOR (255 downto 0);
+           clk      : in STD_LOGIC;
+           done     : out STD_LOGIC;
+           C        : out STD_LOGIC_VECTOR (255 downto 0));
 end modular_exponentiation;
 
 architecture Behavioral of modular_exponentiation is
