@@ -33,22 +33,25 @@ use WORK.ALL;
 --use UNISIM.VComponents.all;
 
 entity modular_product is
-    Port ( A     : in STD_LOGIC_VECTOR (255 downto 0);
-           B     : in STD_LOGIC_VECTOR (255 downto 0);
-           n     : in STD_LOGIC_VECTOR (255 downto 0);
-           clk   : in STD_LOGIC;
-           done  : out STD_LOGIC;
-           u     : out STD_LOGIC_VECTOR (255 downto 0));
+    Port ( A        : in STD_LOGIC_VECTOR (255 downto 0);
+           B        : in STD_LOGIC_VECTOR (255 downto 0);
+           modulo   : in STD_LOGIC_VECTOR (255 downto 0);
+           clk      : in STD_LOGIC;
+           start    : in STD_LOGIC;
+           done     : out STD_LOGIC;
+           product  : out STD_LOGIC_VECTOR (255 downto 0));
 end modular_product;
 
 architecture Behavioral of modular_product is
-    signal u_reg : STD_ULOGIC_VECTOR (256 downto 0);
+    signal product_reg : STD_ULOGIC_VECTOR (256 downto 0);
 
 begin
 
     process(clk) begin
         if(clk'event and clk='1') then
-            
+            if(start='1') then
+                product_reg <= (others => '0');
+            end if;
         end if;
     end process;
 
