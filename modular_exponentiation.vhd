@@ -56,7 +56,7 @@ signal product_reg  : STD_ULOGIC_VECTOR(255 downto 0);
 begin
 
   -- Instantiate the Monpro
-  u_Monpro : entity work.Monpro port map(
+  u_Monpro : entity work.modular_product port map(
     -- Clocks and resets
     clk             => clk,
     -- Signals
