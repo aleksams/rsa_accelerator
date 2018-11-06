@@ -21,6 +21,7 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
 use WORK.ALL;
 
 -- Uncomment the following library declaration if using
@@ -43,7 +44,8 @@ entity modular_product is
 end modular_product;
 
 architecture Behavioral of modular_product is
-    signal product_reg : STD_ULOGIC_VECTOR (256 downto 0);
+    signal product_reg  : STD_LOGIC_VECTOR (256 downto 0);
+    signal loop_counter : UNSIGNED (9 downto 0);             -- 128 bit adder
 
 begin
 
