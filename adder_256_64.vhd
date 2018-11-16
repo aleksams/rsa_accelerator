@@ -105,11 +105,11 @@ begin
 -- Result_nxt
     process(result_reg, active_reg)
     begin
-        if(active_reg='0') then
-            result_nxt <= (others => '0');
-        else
+    --    if(active_reg='0') then
+    --        result_nxt <= (others => '0');
+    --    else
             result_nxt(191 downto 0) <= result_reg(255 downto 64);
-        end if;
+    --    end if;
     end process;
     
 -- Counter
@@ -146,6 +146,6 @@ begin
     --end process;
     
     result_out <= result_reg;
-    done <= STD_LOGIC(counter_reg(2));
+    done <= STD_LOGIC(counter_reg(2)) and active_reg;
 
 end Behavioral;
