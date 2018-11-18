@@ -1,21 +1,21 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
+-- Company:
+-- Engineer:
+--
 -- Create Date: 15.10.2018 10:49:04
--- Design Name: 
+-- Design Name:
 -- Module Name: shift_reg - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
+-- Project Name:
+-- Target Devices:
+-- Tool Versions:
+-- Description:
+--
+-- Dependencies:
+--
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
--- 
+--
 ----------------------------------------------------------------------------------
 
 
@@ -37,22 +37,29 @@ entity shift_reg is
            d_out : buffer STD_LOGIC_VECTOR (255 downto 0);
            rst   : in STD_LOGIC;
            clk   : in STD_LOGIC;
+           shift : in STD_LOGIC;
            load  : in STD_LOGIC);
 end shift_reg;
 
 architecture Behavioral of shift_reg is
 
+signal out_nxt : STD_LOGIC_VECTOR (255 downto 0);
+
 begin
-    process(clk, load, rst, d_in) begin
+    process(shift, load, rst, d_in) begin
         if(rst='1') then
             d_out <= (others => '0');
         elsif(clk'event and clk='1') then
-            if(load='1') then
-                d_out <= d_in;
-            else
-                d_out(254 downto 0) <= d_out(255 downto 1);
-                d_out(255) <= '0';
-            end if;
+            d_out <= out_nxt;
+        end if;
+    end process;
+
+    process(shift, load) begin
+        if(load='1') begin
+            out_nxt <= d_in;
+        elsif(shift='1') then
+            out_nxt(254 downto 0) <= d_out(255 downto 1);
+            out_nxt(255) <= '0';
         end if;
     end process;
 
