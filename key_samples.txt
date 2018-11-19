@@ -1,0 +1,7 @@
+msg_bar = MonPro(msg, r2_mod_n)
+
+decimal
+76 = MonPro(66, 81)
+
+hex
+4C = MonPro(42, 51)
