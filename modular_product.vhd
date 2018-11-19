@@ -2,9 +2,9 @@
 -- Company: 
 -- Engineer: 
 -- 
--- Create Date: 15.10.2018 10:20:03
+-- Create Date: 13.11.2018 13:56:26
 -- Design Name: 
--- Module Name: modular_product - Behavioral
+-- Module Name: MonPro - Behavioral
 -- Project Name: 
 -- Target Devices: 
 -- Tool Versions: 
@@ -21,40 +21,185 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
-use WORK.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if instantiating
 -- any Xilinx leaf cells in this code.
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-entity modular_product is
-    Port ( A        : in STD_LOGIC_VECTOR (255 downto 0);
-           B        : in STD_LOGIC_VECTOR (255 downto 0);
-           modulo   : in STD_LOGIC_VECTOR (255 downto 0);
-           clk      : in STD_LOGIC;
-           start    : in STD_LOGIC;
-           done     : out STD_LOGIC;
-           product  : out STD_LOGIC_VECTOR (255 downto 0));
-end modular_product;
+entity MonPro is
+    Port ( 
+            clk      : in STD_LOGIC;
+            reset_n  : in STD_LOGIC;
+            A        : in STD_LOGIC_VECTOR (255 downto 0);
+            B        : in STD_LOGIC_VECTOR (255 downto 0);
+            modulo   : in STD_LOGIC_VECTOR (255 downto 0);
+            Done     : out STD_LOGIC;
+            Start    : in STD_LOGIC);
+end MonPro;
 
-architecture Behavioral of modular_product is
-    signal product_reg  : STD_LOGIC_VECTOR (256 downto 0);
-    signal loop_counter : UNSIGNED (9 downto 0);             -- 128 bit adder
+architecture Behavioral of MonPro is
+
+-- Internal signals
+
+-- Internal regs
+signal u_reg:             std_logic_vector(256 downto 0); -- k + 1 bits
+signal u_next:            std_logic_vector(256 downto 0); -- k + 1 bits
+signal for_counter_reg:   unsigned(7 downto 0);
+signal for_counter_reg2:  std_logic_vector(7 downto 0);
+signal state:             unsigned(2 downto 0);
+signal add_counter:       unsigned(2 downto 0);
+
+signal working:              std_logic;
+signal done_signal:          std_logic;
+
+signal is_odd: std_logic;
+signal adder_sum_valid: std_logic;
+signal add_cycle: std_logic;
+
+signal A_shift :         STD_LOGIC_VECTOR (255 downto 0);
+
+signal doing_UplusB:        std_logic;
+signal doing_UplusN:        std_logic;
+
+  -- signals to adder
+--signal A_reg, B_reg : std_logic_vector(255 downto 0);
+signal carry_in: std_logic;
+signal Num_1, Num_2: std_logic_vector(255 downto 0);
+
+-- signals from adder
+signal sum_from_adder: std_logic_vector(255 downto 0);
+signal carry_out: std_logic;
+
+signal add_enable: std_logic;
+
+--1. u := 0
+--2. for i = 0 to 255 
+--	2a. u := u + A[i]*B 
+--	2b. If u is odd then 
+--            u := u+n
+--	    u = u/2
+--	if u > n
+--        u = u - n
 
 begin
+      -- Instantiate cla_adder
+    u_full_adder : entity work.full_adder port map(
+      clk         => clk,
+      reset_n     => reset_n,
+      add_enable  => add_enable,
+      Num_1       => Num_1,
+      Num_2       => Num_2,
+      full_sum    => sum_from_adder,
+      out_valid   => adder_sum_valid
+    );
 
-    process(clk) begin
-        if(clk'event and clk='1') then
-            if(start='1') then
-                product_reg <= (others => '0');
+    process(clk, reset_n) 
+        variable FOR_I : natural range 0 to 257 := 0;
+    begin
+        if(reset_n = '0') then
+            -- Iternal
+             u_reg           <= (others => '0');
+             for_counter_reg <= (others => '0');
+             state           <= (others => '0');
+             done_signal            <= '0';
+--             working         <= '0';
+             add_counter  <= (others => '0');
+             doing_UplusB <= '0';
+             doing_UplusN <= '0';
+             add_cycle    <= '0';
+             
+            -- Adder
+             add_enable  <= '0';
+             Num_1       <= (others => '0');
+             Num_2       <= (others => '0');
+             u_next <= (others => '0');
+           
+        elsif(clk'event and clk='1') then
+            u_next <= '0' & sum_from_adder;
+            if(FOR_I = 256) then
+--                working <= '0';
+                FOR_I := 0;
+                
+                done_signal <= '1';
+            elsif(working = '1') then
+                if(add_cycle = '1') then
+                    doing_UplusB <= '0';
+                    doing_UplusN <= '0';
+                   
+                    if(add_counter = "100") then
+                        add_counter <= add_counter + 1;
+                        add_enable <= '0';
+                    elsif(add_counter = "101") then
+                        u_reg <= u_next;
+                        add_cycle <= '0';
+                    else
+                        add_counter <= add_counter + 1;
+                        
+                    end if;
+                else
+                    add_counter <= (others => '0');
+                    
+                    if(A(FOR_I) = '1' and state = "000") then
+                        add_cycle <= '1';
+                        add_enable <= '1';
+                        Num_1 <= u_reg(255 downto 0);
+                        Num_2 <= B;  
+                        state <= state + 1;
+                        doing_UplusB <= '1';
+                        FOR_I := FOR_I + 1;
+                        for_counter_reg <= for_counter_reg + 1;
+                    elsif((u_reg(0) = '1' xor (A(FOR_I)='1' and B(0)='1')) and state = "001") then -- is odd and correct state
+                        add_cycle <= '1';
+                        add_enable <= '1';
+                        Num_1 <= u_reg(255 downto 0);
+                        Num_2 <= modulo;
+                        state <= state + 1;
+                        doing_UplusN <= '1';
+                    elsif(state = "011") then
+                        u_reg(255 downto 0) <= '0' & u_reg(255 downto 1);
+                        state <= "000";
+--                        add_enable <= '0';
+                    else
+                        state <= state + 1;
+                        if(state = "000") then
+                            FOR_I := FOR_I + 1;
+                            for_counter_reg <= for_counter_reg + 1;
+                        end if;
+                        add_enable <= '0';
+                       
+                    end if;
+                    
+                end if;
             end if;
         end if;
     end process;
+    
+--    process(u_next) begin
+--        if(adder_sum_valid = '1') then
+--            u_reg <= u_next;
+--        end if;
+--    end process;
+    
+    
+    process (clk, reset_n) begin
+        if(reset_n = '0') then
+            working <= '0';
+        elsif(clk'event and clk='1') then
+        
+            if(Start = '1') then
+                working <= '1';
+            elsif(done_signal = '1') then
+                working <= '0';
+            end if;
+        end if;
+    end process;
+    
+
+
 
 end Behavioral;
