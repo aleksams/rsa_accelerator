@@ -1,4 +1,6 @@
 msg_bar = MonPro(msg, r2_mod_n)
+modulo decimal = 119
+modulo hex = 77
 
 decimal
 76 = MonPro(66, 81)
