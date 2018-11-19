@@ -7,3 +7,6 @@ decimal
 
 hex
 4C = MonPro(42, 51)
+
+bin
+1001100 = MonPro(1000010, 1010001)

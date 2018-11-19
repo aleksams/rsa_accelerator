@@ -56,12 +56,10 @@ signal add_counter:       unsigned(2 downto 0);
 
 signal working:              std_logic;
 signal done_signal:          std_logic;
-
-signal is_odd: std_logic;
+signal last_bit:             std_logic;
 signal adder_sum_valid: std_logic;
 signal add_cycle: std_logic;
 
-signal A_shift :         STD_LOGIC_VECTOR (255 downto 0);
 
 signal doing_UplusB:        std_logic;
 signal doing_UplusN:        std_logic;
@@ -70,21 +68,13 @@ signal doing_UplusN:        std_logic;
 --signal A_reg, B_reg : std_logic_vector(255 downto 0);
 signal carry_in: std_logic;
 signal Num_1, Num_2: std_logic_vector(255 downto 0);
+signal add_enable: std_logic;
 
 -- signals from adder
 signal sum_from_adder: std_logic_vector(255 downto 0);
 signal carry_out: std_logic;
 
-signal add_enable: std_logic;
 
---1. u := 0
---2. for i = 0 to 255 
---	2a. u := u + A[i]*B 
---	2b. If u is odd then 
---            u := u+n
---	    u = u/2
---	if u > n
---        u = u - n
 
 begin
       -- Instantiate cla_adder
@@ -99,15 +89,15 @@ begin
     );
 
     process(clk, reset_n) 
-        variable FOR_I : natural range 0 to 257 := 0;
+        variable FOR_I : natural range 0 to 520 := 0;
     begin
         if(reset_n = '0') then
             -- Iternal
              u_reg           <= (others => '0');
              for_counter_reg <= (others => '0');
              state           <= (others => '0');
-             done_signal            <= '0';
---             working         <= '0';
+             done_signal     <= '0';
+             last_bit        <= '0';
              add_counter  <= (others => '0');
              doing_UplusB <= '0';
              doing_UplusN <= '0';
@@ -121,11 +111,9 @@ begin
            
         elsif(clk'event and clk='1') then
             u_next <= '0' & sum_from_adder;
-            if(FOR_I = 256) then
---                working <= '0';
+            if(FOR_I = 255 and state = "000") then
                 FOR_I := 0;
-                
-                done_signal <= '1';
+                last_bit <= '1';
             elsif(working = '1') then
                 if(add_cycle = '1') then
                     doing_UplusB <= '0';
@@ -151,41 +139,38 @@ begin
                         Num_2 <= B;  
                         state <= state + 1;
                         doing_UplusB <= '1';
+
+--                    elsif((u_reg(0) = '1' xor (A(FOR_I)='1' and B(0)='1')) and state = "001") then -- is odd and correct state
+                    elsif(state = "001") then
+                        if(u_reg(0)='1') then 
+                            add_cycle <= '1';
+                            add_enable <= '1';
+                            Num_1 <= u_reg(255 downto 0);
+                            Num_2 <= modulo;
+                            
+                            doing_UplusN <= '1';
+                        end if;
+                        state <= state + 1;
+                    elsif(state = "010") then
+                        u_reg(255 downto 0) <= '0' & u_reg(255 downto 1);
+                        state <= "000";                        
                         FOR_I := FOR_I + 1;
                         for_counter_reg <= for_counter_reg + 1;
-                    elsif((u_reg(0) = '1' xor (A(FOR_I)='1' and B(0)='1')) and state = "001") then -- is odd and correct state
-                        add_cycle <= '1';
-                        add_enable <= '1';
-                        Num_1 <= u_reg(255 downto 0);
-                        Num_2 <= modulo;
-                        state <= state + 1;
-                        doing_UplusN <= '1';
-                    elsif(state = "011") then
-                        u_reg(255 downto 0) <= '0' & u_reg(255 downto 1);
-                        state <= "000";
---                        add_enable <= '0';
+                        if(last_bit ='1') then
+                            done_signal <= '1';
+                        end if;
                     else
                         state <= state + 1;
-                        if(state = "000") then
-                            FOR_I := FOR_I + 1;
-                            for_counter_reg <= for_counter_reg + 1;
-                        end if;
                         add_enable <= '0';
                        
-                    end if;
-                    
-                end if;
-            end if;
-        end if;
+                    end if; -- State if, kan byttes i switch
+                end if; -- if add_cycle
+            else -- elsif working = '1'
+                add_enable <= '0';
+            end if; -- elsif working = '1'
+        end if; -- reset clk
     end process;
-    
---    process(u_next) begin
---        if(adder_sum_valid = '1') then
---            u_reg <= u_next;
---        end if;
---    end process;
-    
-    
+
     process (clk, reset_n) begin
         if(reset_n = '0') then
             working <= '0';
