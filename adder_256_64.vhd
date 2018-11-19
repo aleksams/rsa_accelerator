@@ -139,13 +139,13 @@ begin
     end process;
     
 -- Output
-    --process(result_reg) begin
-    --    for i in 0 to 256 loop
-    --        result_out(i) <= STD_LOGIC(counter_reg(2)) and result_reg(i);
-    --    end loop;
-    --end process;
+    process(result_reg) begin
+        for i in 0 to 256 loop
+            result_out(i) <= STD_LOGIC(counter_reg(2)) and result_reg(i);
+        end loop;
+    end process;
     
-    result_out <= result_reg;
+    --result_out <= result_reg;
     done <= STD_LOGIC(counter_reg(2)) and active_reg;
 
 end Behavioral;

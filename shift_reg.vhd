@@ -55,7 +55,7 @@ begin
     end process;
 
     process(shift, load) begin
-        if(load='1') begin
+        if(load='1') then
             out_nxt <= d_in;
         elsif(shift='1') then
             out_nxt(254 downto 0) <= d_out(255 downto 1);

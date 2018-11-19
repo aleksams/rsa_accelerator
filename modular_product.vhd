@@ -53,22 +53,25 @@ end modular_product;
 architecture Behavioral of modular_product is
 
     -- STATE DEFINITIONS
-    type State_type IS (ADD_AB, ADD_N, SHIFT, DONE, IDLE);  -- Define the states
+    type State_type IS (STATE_ADD_AB, STATE_ADD_N, STATE_SHIFT, STATE_DONE, STATE_IDLE);  -- Define the states
     signal State : State_Type;    -- Create a signal that uses
 
     -- STATE: ADD_AB
-    signal add_ab_start : STD_LOGIC;
-    signal add_ab_done : STD_LOGIC;
 
     -- STATE: ADD_N
     signal u_odd : STD_LOGIC;
-    signal add_n_start : STD_LOGIC;
-    signal add_n_done : STD_LOGIC;
 
     -- A Shift Register
     signal load_reg       : STD_LOGIC;
     signal shift          : STD_LOGIC;
     signal data_shift_reg : STD_LOGIC_VECTOR (255 downto 0);
+    
+    -- Adder Signals
+    signal adder_start : STD_LOGIC;
+    signal adder_done : STD_LOGIC;
+    signal adder_a_nxt : STD_LOGIC_VECTOR (255 downto 0);
+    signal adder_b_nxt : STD_LOGIC_VECTOR (255 downto 0);
+    signal adder_result : STD_LOGIC_VECTOR (256 downto 0);
 
     -- Product Register
     signal product_nxt : STD_LOGIC_VECTOR (256 downto 0);
@@ -80,9 +83,9 @@ begin
 
     u_odd <= product_reg(0) xor (data_shift_reg(0) and B(0));
 
--- Shift Register for A
-    u_A_shift_reg: entity work.cla_adder
-       port map (
+-- Shift Register for A entity
+    u_A_shift_reg: entity work.shift_reg
+        port map (
          clk       => clk,
          rst       => reset,
          -- inputs
@@ -91,87 +94,112 @@ begin
          shift     => shift,
          -- output
          d_out     => data_shift_reg(255 downto 0)
-         );
+        );
+         
+-- Adder entity
+    u_Adder: entity work.adder_256_64
+        port map (
+         a_in => adder_a_nxt,
+         b_in => adder_b_nxt,
+         clk => clk,
+         reset => reset,
+         start => adder_start,
+         done => adder_done,
+         result_out => adder_result
+        );
 
 -- Finite State Machine
-    process(clk, reset) begin
-        if(reset='1') begin
-            State <= IDLE;
+    process(clk, reset, State, start, adder_done, loop_counter) begin
+        if(reset='1') then
+            State <= STATE_IDLE;
         elsif(clk'event and clk='1') then
             case( State ) is
                 -- IDLE Description
-                when IDLE =>
+                when STATE_IDLE =>
                     if(start='1') then
-                        State <= ADD_AB;
+                        State <= STATE_ADD_AB;
                     end if;
                 -- ADD_AB Description
-                when ADD_AB =>
-                    if(add_ab_done='1') then
+                when STATE_ADD_AB =>
+                    if(adder_done='1') then
                         if(product_reg(0)='1') then
-                            State <= ADD_N;
+                            State <= STATE_ADD_N;
                         else
-                            State <= SHIFT;
+                            State <= STATE_SHIFT;
                         end if;
                     end if;
                 -- ADD_N Description
-                when ADD_N =>
-                    if(add_n_done='1') then
-                        State <= SHIFT;
+                when STATE_ADD_N =>
+                    if(adder_done='1') then
+                        State <= STATE_SHIFT;
                     end if;
                 -- SHIFT Description
-                when SHIFT =>
+                when STATE_SHIFT =>
                     if(loop_counter=255) then
-                        State <= DONE;
+                        State <= STATE_DONE;
                     else
-                        State <= ADD_AB;
+                        State <= STATE_ADD_AB;
                     end if;
                 -- DONE Description
-                when DONE =>
-                    State <= IDLE;
+                when STATE_DONE =>
+                    State <= STATE_IDLE;
                 -- Other Description
                 when others =>
-                    State <= IDLE;
+                    State <= STATE_IDLE;
             end case;
         end if;
     end process;
 
+-- Next Product
+    process(State, adder_result, product_reg) begin
+        case(State) is
+          when STATE_IDLE =>
+            product_nxt <= (others => '0');
+          when STATE_ADD_AB =>
+            product_nxt <= adder_result;
+          when STATE_ADD_N =>
+            product_nxt <= adder_result;
+          when STATE_SHIFT =>
+            product_nxt(255 downto 0) <= product_reg(256 downto 1);
+            product_nxt(256) <= '0';
+          when STATE_DONE => -- HHMMM
+            product_nxt <= product_reg;
+        end case;
+    end process;
+    
+-- Next Adder A
+    adder_a_nxt <= product_reg(255 downto 0);
+    
+-- Next Adder B
     process(State) begin
-        case(State) begin
-          when IDLE =>
-              load_reg
-          when ADD_AB =>
-              if(add_ab_done='1') then
-                  State <= ADD_N;
-              end if;
-          when ADD_N =>
-              if(add_n_done='1') then
-                  State <= SHIFT;
-              end if;
-          when SHIFT =>
-              if(loop_counter=255) then
-                  State <= DONE;
-              else
-                  State <= ADD_AB;
-              end if;
-          when DONE =>
-              State <= IDLE;
-          when others =>
-              State <= IDLE;
+        case(State) is
+            when STATE_ADD_AB =>
+                adder_b_nxt <= B;
+            when STATE_ADD_N =>
+                adder_b_nxt <= modulo;
         end case;
     end process;
 
 -- Product register
-    process(clk, start) begin
+    process(clk, start, product_nxt) begin
         if(reset='1') then
             product_reg <= (others => '0');
         elsif(clk'event and clk='1') then
             product_reg <= product_nxt;
         end if;
     end process;
-
--- Next Product
-    process() begin
-
+    
+-- Loop Counter
+    process(clk, reset) begin
+        if(reset='1') then
+            loop_counter <= (others => '0');
+        elsif(clk'event and clk='1') then
+            if(State=STATE_SHIFT) then
+                loop_counter <= loop_counter + 1;
+            elsif(State=STATE_IDLE) then
+                loop_counter <= (others => '0');
+            end if;
+        end if;
     end process;
 
 end Behavioral;
