@@ -53,7 +53,9 @@ end modular_product;
 architecture Behavioral of modular_product is
 
     -- STATE DEFINITIONS
-    type State_type is (STATE_START, STATE_ADD_AB, STATE_ADD_N, STATE_SHIFT, STATE_DONE, STATE_IDLE);  -- Define the states
+    type State_type is (STATE_START,      STATE_ADD_AB,     STATE_ADD_AB_DONE, 
+                        STATE_ADD_N,      STATE_ADD_N_DONE, STATE_SHIFT,
+                        STATE_SHIFT_DONE, STATE_DONE,       STATE_IDLE);  -- Define the states
     signal State : State_Type;    -- Create a signal that uses
 
     -- STATE: ADD_AB
@@ -76,6 +78,7 @@ architecture Behavioral of modular_product is
     -- Product Register
     signal product_nxt : STD_LOGIC_VECTOR (256 downto 0);
     signal product_reg  : STD_LOGIC_VECTOR (256 downto 0);
+    signal product_reg_en : STD_LOGIC;
 
     signal loop_counter : UNSIGNED (7 downto 0); -- count to 256
 
@@ -125,20 +128,29 @@ begin
                     State <= STATE_ADD_AB;
                 -- ADD_AB Description
                 when STATE_ADD_AB =>
-                    if(data_shift_reg(0)='0' or adder_done='1') then
-                        if(u_odd='1') then
-                            State <= STATE_ADD_N;
-                        else
-                            State <= STATE_SHIFT;
-                        end if;
+                    if(adder_done='1' or data_shift_reg(0)='0') then
+                        State <= STATE_ADD_AB_DONE;
+                    end if;
+                -- ADD_AB_DONE
+                when STATE_ADD_AB_DONE =>
+                    if(u_odd='1') then
+                        State <= STATE_ADD_N;
+                    else
+                        State <= STATE_SHIFT;
                     end if;
                 -- ADD_N Description
                 when STATE_ADD_N =>
                     if(adder_done='1') then
-                        State <= STATE_SHIFT;
+                        State <= STATE_ADD_N_DONE;
                     end if;
+                -- ADD_N_DONE
+                when STATE_ADD_N_DONE =>
+                    State <= STATE_SHIFT;
                 -- SHIFT Description
                 when STATE_SHIFT =>
+                    State <= STATE_SHIFT_DONE;
+                -- SHIFT_DONE
+                when STATE_SHIFT_DONE =>
                     if(loop_counter=255) then
                         State <= STATE_DONE;
                     else
@@ -167,9 +179,16 @@ begin
             else
                 product_nxt <= product_reg;
             end if;
+          when STATE_ADD_AB_DONE =>
+            product_nxt <= adder_result;
           when STATE_ADD_N =>
             product_nxt <= adder_result;
+          when STATE_ADD_N_DONE =>
+            product_nxt <= adder_result;
           when STATE_SHIFT =>
+            product_nxt(255 downto 0) <= product_reg(256 downto 1);
+            product_nxt(256) <= '0';
+          when STATE_SHIFT_DONE =>
             product_nxt(255 downto 0) <= product_reg(256 downto 1);
             product_nxt(256) <= '0';
           when STATE_DONE => -- HHMMM
@@ -190,9 +209,15 @@ begin
             else
                 adder_active <= '0';
             end if;
+          when STATE_ADD_AB_DONE =>
+            adder_active <= '0';
           when STATE_ADD_N =>
             adder_active <= '1';
+          when STATE_ADD_N_DONE =>
+            adder_active <= '0';
           when STATE_SHIFT =>
+            adder_active <= '0';
+          when STATE_SHIFT_DONE =>
             adder_active <= '0';
           when STATE_DONE => -- HHMMM
             adder_active <= '0';
@@ -233,13 +258,33 @@ begin
                 adder_b_nxt <= (others => '0');
         end case;
     end process;
+    
+-- Product register enable
+    process(State) begin
+        case(State) is
+            when STATE_START =>
+                product_reg_en <= '1';
+            when STATE_ADD_AB_DONE =>
+                product_reg_en <= '1';
+            when STATE_ADD_N_DONE =>
+                product_reg_en <= '1';
+            when STATE_DONE =>
+                product_reg_en <= '1';
+            when STATE_SHIFT_DONE =>
+                product_reg_en <= '1';
+            when others =>
+                product_reg_en <= '0';
+        end case;
+    end process;
 
 -- Product register
     process(clk, reset) begin
         if(reset='1') then
             product_reg <= (others => '0');
         elsif(clk'event and clk='1') then
-            product_reg <= product_nxt;
+            if(product_reg_en='1') then
+                product_reg <= product_nxt;
+            end if;
         end if;
     end process;
     

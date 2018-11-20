@@ -54,7 +54,7 @@ signal result_nxt : STD_LOGIC_VECTOR (256 downto 0);
 signal result_reg : STD_LOGIC_VECTOR (256 downto 0);
 signal counter_reg : UNSIGNED (2 downto 0);
 signal active_reg : STD_LOGIC;
---signal start : STD_LOGIC;
+signal done_reg : STD_LOGIC;
 
 begin
 
@@ -135,7 +135,7 @@ begin
         if(reset = '1') then
             active_reg <= '0';
         elsif(clk'event and clk='1') then
-            if(counter_reg(2) = '1') then
+            if(counter_reg = 4) then
                 active_reg <= '0';
             elsif(active='1') then
                 active_reg <= '1';
@@ -144,21 +144,22 @@ begin
     end process;
     
 -- Output
-    process(result_reg) begin
-        for i in 0 to 256 loop
-            result_out(i) <= active and result_reg(i);--STD_LOGIC(counter_reg(2)) and result_reg(i);
-        end loop;
-    end process;
-    
-    --process(counter_reg) begin
-    --    if(counter_reg(2)='1') then
-    --        done <= '1';
-    --    elsif(active_reg='0') then
-    --        done <= '0';
-    --    end if;
+    --process(result_reg) begin
+    --    for i in 0 to 256 loop
+    --        result_out(i) <= active and result_reg(i);--STD_LOGIC(counter_reg(2)) and result_reg(i);
+    --    end loop;
     --end process;
     
-    --result_out <= result_reg;
-    done <= STD_LOGIC(counter_reg(2)) and active_reg;
+    process(counter_reg) begin
+        if(counter_reg=4) then
+            done_reg <= '1';
+        else
+            done_reg <= '0';
+        end if;
+    end process;
+    
+    result_out <= result_reg;
+    --done <= STD_LOGIC(counter_reg(2)) and active_reg;
+    done <= done_reg;
 
 end Behavioral;
