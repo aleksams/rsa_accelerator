@@ -37,16 +37,17 @@ entity full_adder is
            clk          : in STD_LOGIC;
            reset_n      : in STD_LOGIC;
            add_enable   : in STD_LOGIC;
-           Num_1        : in STD_LOGIC_VECTOR (255 downto 0);
-           Num_2        : in STD_LOGIC_VECTOR (255 downto 0);
-           full_sum     : out STD_LOGIC_VECTOR (255 downto 0);
+           is_minus     : in STD_LOGIC;
+           Num_1        : in STD_LOGIC_VECTOR (256 downto 0);
+           Num_2        : in STD_LOGIC_VECTOR (256 downto 0);
+           full_sum     : out STD_LOGIC_VECTOR (257 downto 0);
            out_valid    : out std_logic);
 end full_adder;
 
 architecture Behavioral of full_adder is
 
 -- reg associated with adder
-signal sum_reg: std_logic_vector(255 downto 0);
+signal sum_reg: std_logic_vector(257 downto 0);
 signal carry_reg: std_logic_vector(3 downto 0);
   
 -- counter
@@ -56,11 +57,11 @@ signal output_shift_counter_r: unsigned(2 downto 0);
 --signal b_r: std_logic_vector(255 downto 0);
 
   -- signals to adder
-signal to_adder_1, to_adder_2 : std_logic_vector(63 downto 0);
+signal to_adder_1, to_adder_2 : std_logic_vector(64 downto 0);
 signal carry_in: std_logic;
 
 -- signals from adder
-signal sum_from_adder: std_logic_vector(63 downto 0);
+signal sum_from_adder: std_logic_vector(64 downto 0);
 signal carry_out: std_logic;
 
 signal done_add: std_logic;
@@ -107,16 +108,16 @@ process (clk, reset_n) begin
             output_shift_counter_r <= output_shift_counter_r + 1;
             case output_shift_counter_r is
                   when "000" =>
-                      sum_reg(63 downto 0) <= sum_from_adder;
+                      sum_reg(64 downto 0) <= sum_from_adder;
                       
                   when "001" =>
-                      sum_reg(127 downto 64) <= sum_from_adder;
+                      sum_reg(129 downto 65) <= sum_from_adder;
                       
                   when "010" =>
-                      sum_reg(191 downto 128) <= sum_from_adder;
+                      sum_reg(194 downto 130) <= sum_from_adder;
                       
                   when "011" =>
-                      sum_reg(255 downto 192) <= sum_from_adder;
+                      sum_reg(257 downto 195) <= sum_from_adder(62 downto 0);
                       done_add <= '1';
                   when others =>
                       sum_reg <= (others => '0');
@@ -131,24 +132,24 @@ process (Num_1,Num_2, carry_out, carry_reg, output_shift_counter_r, add_enable) 
     if(add_enable = '1') then
       case output_shift_counter_r is
         when "000" =>
-            carry_in <= '0';
-            to_adder_1 <= Num_1(63 downto 0);
-            to_adder_2 <= Num_2(63 downto 0);
+            carry_in <= is_minus;
+            to_adder_1 <= Num_1(64 downto 0);
+            to_adder_2 <= Num_2(64 downto 0);
             carry_reg(0) <= carry_out;
         when "001" =>
             carry_in <= carry_reg(0);
-            to_adder_1 <= Num_1(127 downto 64);
-            to_adder_2 <= Num_2(127 downto 64);
+            to_adder_1 <= Num_1(129 downto 65);
+            to_adder_2 <= Num_2(129 downto 65);
             carry_reg(1) <= carry_out;
         when "010" =>
             carry_in <= carry_reg(1);
-            to_adder_1 <= Num_1(191 downto 128);
-            to_adder_2 <= Num_2(191 downto 128);
+            to_adder_1 <= Num_1(194 downto 130);
+            to_adder_2 <= Num_2(194 downto 130);
             carry_reg(2) <= carry_out;
         when "011" =>
             carry_in <= carry_reg(2);
-            to_adder_1 <= Num_1(255 downto 192);
-            to_adder_2 <= Num_2(255 downto 192);
+            to_adder_1 <= "000" & Num_1(256 downto 195);
+            to_adder_2 <= "000" & Num_2(256 downto 195);
         when others =>
             carry_in <= '0';
             to_adder_1 <= (others => '0');
@@ -160,39 +161,5 @@ process (Num_1,Num_2, carry_out, carry_reg, output_shift_counter_r, add_enable) 
         carry_in  <= '0';
     end if;
 end process;
-
---process (a_r, b_r, carry_out, carry_reg, output_shift_counter_r, add_enable) begin
---    if(add_enable = '1') then
---      case output_shift_counter_r is
---        when "000" =>
---            carry_in <= '0';
---            to_adder_1 <= a_r(63 downto 0);
---            to_adder_2 <= b_r(63 downto 0);
---            carry_reg(0) <= carry_out;
---        when "001" =>
---            carry_in <= carry_reg(0);
---            to_adder_1 <= a_r(127 downto 64);
---            to_adder_2 <= b_r(127 downto 64);
---            carry_reg(1) <= carry_out;
---        when "010" =>
---            carry_in <= carry_reg(1);
---            to_adder_1 <= a_r(191 downto 128);
---            to_adder_2 <= b_r(191 downto 128);
---            carry_reg(2) <= carry_out;
---        when "011" =>
---            carry_in <= carry_reg(2);
---            to_adder_1 <= a_r(255 downto 192);
---            to_adder_2 <= b_r(255 downto 192);
---        when others =>
---            carry_in <= '0';
---            to_adder_1 <= (others => '0');
---            to_adder_2 <= (others => '0');
---            carry_reg  <= (others => '0');
---      end case;
---    else 
---        carry_reg <= (others => '0');
---        carry_in  <= '0';
---    end if;
---end process;
 
 end Behavioral;
