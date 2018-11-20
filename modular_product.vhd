@@ -38,8 +38,10 @@ entity MonPro is
             A        : in STD_LOGIC_VECTOR (255 downto 0);
             B        : in STD_LOGIC_VECTOR (255 downto 0);
             modulo   : in STD_LOGIC_VECTOR (255 downto 0);
-            Done     : out STD_LOGIC;
-            Start    : in STD_LOGIC);
+            Start    : in STD_LOGIC;
+            
+            Done     : out STD_LOGIC;   -- TODO: koblings
+            Product  : out STD_LOGIC_VECTOR (255 downto 0));            
 end MonPro;
 
 architecture Behavioral of MonPro is
@@ -49,7 +51,7 @@ architecture Behavioral of MonPro is
 -- Internal regs
 signal u_reg:             std_logic_vector(256 downto 0); -- k + 1 bits
 signal u_next:            std_logic_vector(256 downto 0); -- k + 1 bits
-signal for_counter_reg:   unsigned(7 downto 0);
+signal for_counter_reg:   unsigned(7 downto 0);           -- skal fjernes
 signal for_counter_reg2:  std_logic_vector(7 downto 0);
 signal state:             unsigned(2 downto 0);
 signal add_counter:       unsigned(2 downto 0);
@@ -61,8 +63,8 @@ signal adder_sum_valid: std_logic;
 signal add_cycle: std_logic;
 
 
-signal doing_UplusB:        std_logic;
-signal doing_UplusN:        std_logic;
+signal doing_UplusB:        std_logic; -- skal fjernes
+signal doing_UplusN:        std_logic; -- skal fjernes
 
   -- signals to adder
 --signal A_reg, B_reg : std_logic_vector(255 downto 0);
@@ -77,7 +79,7 @@ signal carry_out: std_logic;
 
 
 begin
-      -- Instantiate cla_adder
+      -- Instantiate adder
     u_full_adder : entity work.full_adder port map(
       clk         => clk,
       reset_n     => reset_n,
@@ -94,13 +96,13 @@ begin
         if(reset_n = '0') then
             -- Iternal
              u_reg           <= (others => '0');
-             for_counter_reg <= (others => '0');
+             for_counter_reg <= (others => '0'); -- skal fjernes
              state           <= (others => '0');
              done_signal     <= '0';
              last_bit        <= '0';
              add_counter  <= (others => '0');
-             doing_UplusB <= '0';
-             doing_UplusN <= '0';
+             doing_UplusB <= '0'; -- skal fjernes
+             doing_UplusN <= '0'; -- skal fjernes
              add_cycle    <= '0';
              
             -- Adder
@@ -115,6 +117,7 @@ begin
                 FOR_I := 0;
                 last_bit <= '1';
             elsif(working = '1') then
+            
                 if(add_cycle = '1') then
                     doing_UplusB <= '0';
                     doing_UplusN <= '0';
@@ -155,7 +158,7 @@ begin
                         u_reg(255 downto 0) <= '0' & u_reg(255 downto 1);
                         state <= "000";                        
                         FOR_I := FOR_I + 1;
-                        for_counter_reg <= for_counter_reg + 1;
+                        for_counter_reg <= for_counter_reg + 1; -- skal fjernes
                         if(last_bit ='1') then
                             done_signal <= '1';
                         end if;
@@ -177,14 +180,15 @@ begin
         elsif(clk'event and clk='1') then
         
             if(Start = '1') then
+                Done <= '0';
                 working <= '1';
+                Product <= (others => '0');
             elsif(done_signal = '1') then
                 working <= '0';
+                Done <= '1';
+                Product <= u_reg(255 downto 0);
             end if;
+            
         end if;
     end process;
-    
-
-
-
 end Behavioral;
