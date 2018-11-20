@@ -44,238 +44,153 @@ entity modular_product is
            reset    : in STD_LOGIC;
            clk      : in STD_LOGIC;
            start    : in STD_LOGIC;
+           done     : out STD_LOGIC;
 
            -- OUTPUT VALUES
-           done     : out STD_LOGIC;
            product  : out STD_LOGIC_VECTOR (255 downto 0));
 end modular_product;
 
 architecture Behavioral of modular_product is
 
     -- STATE DEFINITIONS
-    type State_type is (STATE_START,      STATE_ADD_AB,     STATE_ADD_AB_DONE, 
-                        STATE_ADD_N,      STATE_ADD_N_DONE, STATE_SHIFT,
-                        STATE_SHIFT_DONE, STATE_DONE,       STATE_IDLE);  -- Define the states
-    signal State : State_Type;    -- Create a signal that uses
-
-    -- STATE: ADD_AB
-
-    -- STATE: ADD_N
-    signal u_odd : STD_LOGIC;
-
-    -- A Shift Register
-    signal load_reg       : STD_LOGIC;
-    signal shift          : STD_LOGIC;
-    signal data_shift_reg : STD_LOGIC_VECTOR (255 downto 0);
+    type State_type is (STATE_START, STATE_ADD_AB, STATE_ADD_N, STATE_SHIFT, STATE_SUB_N, STATE_DONE, STATE_IDLE);
     
-    -- Adder Signals
-    signal adder_active : STD_LOGIC;
-    signal adder_done : STD_LOGIC;
-    signal adder_a_nxt : STD_LOGIC_VECTOR (255 downto 0);
-    signal adder_b_nxt : STD_LOGIC_VECTOR (255 downto 0);
-    signal adder_result : STD_LOGIC_VECTOR (256 downto 0);
+    -- STATE SIGNALS
+    signal State, State_nxt : State_Type;
+
+    -- Look ahed logic
+    signal u_odd : STD_LOGIC;
+    
+    -- Internal
+    signal done_i : STD_LOGIC;
+
+    -- Shift Register for A
+    signal load_shift_reg : STD_LOGIC;
+    signal shift          : STD_LOGIC;
+    signal shift_reg_out  : STD_LOGIC_VECTOR (255 downto 0);
 
     -- Product Register
-    signal product_nxt : STD_LOGIC_VECTOR (256 downto 0);
-    signal product_reg  : STD_LOGIC_VECTOR (256 downto 0);
+    signal product_nxt    : STD_LOGIC_VECTOR (256 downto 0);
+    signal product_reg    : STD_LOGIC_VECTOR (256 downto 0);
     signal product_reg_en : STD_LOGIC;
 
+    -- Loop control
     signal loop_counter : UNSIGNED (7 downto 0); -- count to 256
+    signal loop_reg_en  : STD_LOGIC;
 
 begin
 
-    u_odd <= product_reg(0) xor (data_shift_reg(0) and B(0));
+    --u_odd <= product_reg(0) xor (data_shift_reg(0) and B(0));
+-- Assignments
     product <= product_reg(255 downto 0);
+    done <= done_i;
 
--- Shift Register for A entity
+-- Shift Register Entity for A
     u_A_shift_reg: entity work.shift_reg
         port map (
          clk       => clk,
          rst       => reset,
          -- inputs
          d_in      => A(255 downto 0),
-         load      => load_reg,
+         load      => load_shift_reg,
          shift     => shift,
          -- output
-         d_out     => data_shift_reg(255 downto 0)
+         d_out     => shift_reg_out (255 downto 0)
         );
-         
--- Adder entity
-    u_Adder: entity work.adder_256_64
-        port map (
-         a_in => adder_a_nxt,
-         b_in => adder_b_nxt,
-         clk => clk,
-         reset => reset,
-         active => adder_active,
-         done => adder_done,
-         result_out => adder_result
-        );
+        
+--------------------------------
+-- Finite State Machine Begin --
+--------------------------------
 
--- Finite State Machine
-    process(clk, reset, State, start, adder_done, loop_counter) begin
+-- State Register
+    process(clk, reset) begin
         if(reset='1') then
             State <= STATE_IDLE;
         elsif(clk'event and clk='1') then
-            case( State ) is
-                -- IDLE Description
-                when STATE_IDLE =>
-                    if(start='1') then
-                        State <= STATE_START;
-                    end if;
-                -- START Description
-                when STATE_START =>
-                    State <= STATE_ADD_AB;
-                -- ADD_AB Description
-                when STATE_ADD_AB =>
-                    if(adder_done='1' or data_shift_reg(0)='0') then
-                        State <= STATE_ADD_AB_DONE;
-                    end if;
-                -- ADD_AB_DONE
-                when STATE_ADD_AB_DONE =>
-                    if(u_odd='1') then
-                        State <= STATE_ADD_N;
-                    else
-                        State <= STATE_SHIFT;
-                    end if;
-                -- ADD_N Description
-                when STATE_ADD_N =>
-                    if(adder_done='1') then
-                        State <= STATE_ADD_N_DONE;
-                    end if;
-                -- ADD_N_DONE
-                when STATE_ADD_N_DONE =>
-                    State <= STATE_SHIFT;
-                -- SHIFT Description
-                when STATE_SHIFT =>
-                    State <= STATE_SHIFT_DONE;
-                -- SHIFT_DONE
-                when STATE_SHIFT_DONE =>
-                    if(loop_counter=255) then
-                        State <= STATE_DONE;
-                    else
-                        State <= STATE_ADD_AB;
-                    end if;
-                -- DONE Description
-                when STATE_DONE =>
-                    State <= STATE_IDLE;
-                -- Other Description
-                when others =>
-                    State <= STATE_IDLE;
-            end case;
+            State <= State_nxt;
         end if;
     end process;
-
--- Next Product
-    process(State) begin
-        case(State) is
-          when STATE_IDLE =>
-            product_nxt <= (others => '0'); 
-          when STATE_START =>
-            product_nxt <= product_reg;
-          when STATE_ADD_AB =>
-            if(data_shift_reg(0)='1') then
-                product_nxt <= adder_result;
-            else
-                product_nxt <= product_reg;
-            end if;
-          when STATE_ADD_AB_DONE =>
-            product_nxt <= adder_result;
-          when STATE_ADD_N =>
-            product_nxt <= adder_result;
-          when STATE_ADD_N_DONE =>
-            product_nxt <= adder_result;
-          when STATE_SHIFT =>
-            product_nxt(255 downto 0) <= product_reg(256 downto 1);
-            product_nxt(256) <= '0';
-          when STATE_SHIFT_DONE =>
-            product_nxt(255 downto 0) <= product_reg(256 downto 1);
-            product_nxt(256) <= '0';
-          when STATE_DONE => -- HHMMM
-            product_nxt <= product_reg;
-        end case;
-    end process;
     
--- Active Adder
-    process(State) begin
-        case(State) is
-          when STATE_IDLE =>
-            adder_active <= '0';
-          when STATE_START =>
-            adder_active <= '0';
-          when STATE_ADD_AB =>
-            if(data_shift_reg(0)='1') then
-                adder_active <= '1';
-            else
-                adder_active <= '0';
-            end if;
-          when STATE_ADD_AB_DONE =>
-            adder_active <= '0';
-          when STATE_ADD_N =>
-            adder_active <= '1';
-          when STATE_ADD_N_DONE =>
-            adder_active <= '0';
-          when STATE_SHIFT =>
-            adder_active <= '0';
-          when STATE_SHIFT_DONE =>
-            adder_active <= '0';
-          when STATE_DONE => -- HHMMM
-            adder_active <= '0';
-        end case;
-    end process;
-    
--- Shift reg shift
-    process(State) begin
-        case(State) is
-          when STATE_SHIFT =>
-            shift <= '1';
-          when others =>
-            shift <= '0';
-        end case;
-    end process;
-    
--- Shift reg shift
-    process(State) begin
-        case(State) is
-          when STATE_START =>
-            load_reg <= '1';
-          when others =>
-            load_reg <= '0';
-        end case;
-    end process;
-    
--- Next Adder A
-    adder_a_nxt <= product_reg(255 downto 0);
-    
--- Next Adder B
-    process(State) begin
-        case(State) is
+-- Next State
+    process(State, start) begin
+        case( State ) is
+            -- IDLE Description
+            when STATE_IDLE =>
+                if(start='1') then
+                    State_nxt <= STATE_START;
+                else
+                    State_nxt <= STATE_IDLE;
+                end if;
+            -- START Description
+            when STATE_START =>
+                State_nxt <= STATE_ADD_AB;
+            -- ADD_AB Description
             when STATE_ADD_AB =>
-                adder_b_nxt <= B;
+                State_nxt <= STATE_ADD_N;
+            -- ADD_N Description
             when STATE_ADD_N =>
-                adder_b_nxt <= modulo;
-            when others =>
-                adder_b_nxt <= (others => '0');
+                State_nxt <= STATE_SHIFT;
+            -- SHIFT Description
+            when STATE_SHIFT =>
+                if(loop_counter=255) then
+                    State_nxt <= STATE_SUB_N;
+                else
+                    State_nxt <= STATE_ADD_AB;
+                end if;
+            -- SUB_N Description
+            when STATE_SUB_N =>
+                State_nxt <= STATE_DONE;
+            -- DONE Description
+            when STATE_DONE =>
+                State_nxt <= STATE_IDLE;
+            -- Other Description
+            --when others =>
+            --    State_nxt <= STATE_IDLE;
         end case;
     end process;
-    
--- Product register enable
-    process(State) begin
+
+-- System controll
+    process(State, loop_counter, shift_reg_out, product_reg) begin
+        load_shift_reg <= '0';
+        shift          <= '0';
+        product_reg_en <= '0';
+        product_nxt    <= product_reg;
+        done_i         <= '0';
+        loop_reg_en    <= '0';
         case(State) is
             when STATE_START =>
+                load_shift_reg <= '1';
                 product_reg_en <= '1';
-            when STATE_ADD_AB_DONE =>
+                product_nxt <= (others => '0');
+            when STATE_ADD_AB =>
                 product_reg_en <= '1';
-            when STATE_ADD_N_DONE =>
+                if(shift_reg_out(0)='1') then
+                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) + UNSIGNED("0" & B));
+                end if;
+            when STATE_ADD_N =>
                 product_reg_en <= '1';
+                if(product_reg(0)='1') then
+                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) + UNSIGNED("0" & modulo));
+                end if;
+            when STATE_SHIFT =>
+                shift <= '1';
+                loop_reg_en <= '1';
+                product_reg_en <= '1';
+                product_nxt <= "0" & product_reg(256 downto 1);
+            when STATE_SUB_N =>
+                product_reg_en <= '1';
+                if(UNSIGNED(product_reg) >= UNSIGNED(modulo)) then
+                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) - UNSIGNED("0" & modulo));
+                end if;
             when STATE_DONE =>
-                product_reg_en <= '1';
-            when STATE_SHIFT_DONE =>
-                product_reg_en <= '1';
+                done_i <= '1';
             when others =>
-                product_reg_en <= '0';
         end case;
     end process;
+    
+------------------------------
+-- Finite State Machine End --
+------------------------------
 
 -- Product register
     process(clk, reset) begin
@@ -286,16 +201,6 @@ begin
                 product_reg <= product_nxt;
             end if;
         end if;
-    end process;
-    
--- Done out
-    process(State) begin
-        case(State) is
-            when STATE_DONE =>
-                done <= '1';
-            when others =>
-                done <= '0';
-        end case;
     end process;
     
 -- Loop Counter
