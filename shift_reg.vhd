@@ -46,7 +46,7 @@ architecture Behavioral of shift_reg is
 signal out_nxt : STD_LOGIC_VECTOR (255 downto 0);
 
 begin
-    process(shift, load, rst, d_in) begin
+    process(clk, rst) begin
         if(rst='1') then
             d_out <= (others => '0');
         elsif(clk'event and clk='1') then
@@ -54,12 +54,14 @@ begin
         end if;
     end process;
 
-    process(shift, load) begin
+    process(shift, load, d_out, d_in) begin
         if(load='1') then
             out_nxt <= d_in;
         elsif(shift='1') then
             out_nxt(254 downto 0) <= d_out(255 downto 1);
             out_nxt(255) <= '0';
+        else
+            out_nxt <= d_out;
         end if;
     end process;
 
