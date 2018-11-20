@@ -68,11 +68,13 @@ architecture Behavioral of modular_exponentiation is
     signal monPro_done  : STD_LOGIC;
     signal A_next       : STD_LOGIC_VECTOR(255 downto 0);
     signal B_next       : STD_LOGIC_VECTOR(255 downto 0);
+    signal monPro_out   : STD_LOGIC_VECTOR(255 downto 0);
     
     -- Key Shift Register
     signal load_shift_reg : STD_LOGIC;
     signal shift          : STD_LOGIC;
     signal shift_reg_out  : STD_LOGIC_VECTOR (255 downto 0);
+    signal key_reversed   : STD_LOGIC_VECTOR (255 downto 0);
     
     -- Message Bar Register
     signal message_bar_reg_en : STD_LOGIC;
@@ -90,7 +92,14 @@ architecture Behavioral of modular_exponentiation is
 begin
 
 -- Assignments
+    cipher <= cipher_reg;
     done <= done_i;
+    
+    process(key) begin
+        for i in 0 to 255 loop
+            key_reversed(i) <= key(255-i);
+        end loop;
+    end process;
 
 -- Instantiate the MonPro
   u_Monpro : entity work.modular_product port map(
@@ -105,7 +114,7 @@ begin
     B               => B_next,
     modulo          => modulo,
     -- Outputs
-    product         => cipher_reg
+    product         => monPro_out
   );
   
   -- Shift Register Entity for Key
@@ -114,7 +123,7 @@ begin
        clk       => clk,
        rst       => reset,
        -- inputs
-       d_in      => key,
+       d_in      => key_reversed,
        load      => load_shift_reg,
        shift     => shift,
        -- output
@@ -135,7 +144,7 @@ begin
     end process;
     
 -- Next State
-    process(State, start) begin
+    process(State, start, monPro_done) begin
         case( State ) is
             -- IDLE Description
             when STATE_IDLE =>
@@ -147,21 +156,29 @@ begin
             -- START Description
             when STATE_START =>
                 if(monPro_done='1') then
-                    State_nxt <= STATE_CC_MODN;
+                    State_nxt <= STATE_START_DONE;
                 end if;
+            when STATE_START_DONE =>
+                State_nxt <= STATE_CC_MODN;
             -- ADD_AB Description
             when STATE_CC_MODN =>
                 if(monPro_done='1') then
-                    State_nxt <= STATE_CM_MODN;
+                    State_nxt <= STATE_CC_MODN_DONE;
                 end if;
+            -- ADD_AB Description
+            when STATE_CC_MODN_DONE =>
+                State_nxt <= STATE_CM_MODN;
             -- ADD_N Description
             when STATE_CM_MODN =>
-                if(monPro_done='1') then
-                    if(loop_counter=255) then
-                        State_nxt <= STATE_DONE;
-                    else
-                        State_nxt <= STATE_CC_MODN;
-                    end if;
+                if(monPro_done='1' or shift_reg_out(0)='0') then
+                    State_nxt <= STATE_CM_MODN_DONE;
+                end if;
+            -- 
+            when STATE_CM_MODN_DONE =>
+                if(loop_counter=255) then
+                    State_nxt <= STATE_DONE;
+                else
+                    State_nxt <= STATE_CC_MODN;
                 end if;
             -- DONE Description
             when STATE_DONE =>
@@ -173,16 +190,18 @@ begin
     end process;
 
 -- System controll
-    process(State, loop_counter, shift_reg_out, cipher_reg) begin
-        load_shift_reg <= '0';
-        shift          <= '0';
-        cipher_reg_en  <= '0';
-        cipher_nxt     <= cipher_reg;
-        done_i         <= '0';
-        loop_reg_en    <= '0';
-        monPro_start   <= '0';
-        A_next         <= (others => '0');
-        B_next         <= (others => '0');
+    process(State, loop_counter, shift_reg_out, cipher_reg, message_bar_reg, monPro_out) begin
+        load_shift_reg     <= '0';
+        shift              <= '0';
+        cipher_reg_en      <= '0';
+        cipher_nxt         <= cipher_reg;
+        message_bar_reg_en <= '0';
+        message_bar_nxt    <= message_bar_reg;
+        done_i             <= '0';
+        loop_reg_en        <= '0';
+        monPro_start       <= '0';
+        A_next             <= (others => '0');
+        B_next             <= (others => '0');
         case(State) is
             when STATE_START =>
                 load_shift_reg <= '1';
@@ -190,10 +209,30 @@ begin
                 A_next <= message;
                 B_next <= r2_mod_n;
                 monPro_start <= '1';
+            when STATE_START_DONE =>
+                message_bar_reg_en <= '1';
+                message_bar_nxt <= monPro_out;
             when STATE_CC_MODN =>
-
+                A_next <= cipher_reg;
+                B_next <= cipher_reg;
+                monPro_start <= '1';
+            when STATE_CC_MODN_DONE =>
+                cipher_reg_en <= '1';
+                cipher_nxt <= monPro_out;
             when STATE_CM_MODN =>
-
+                if(shift_reg_out(0)='1') then
+                    A_next <= message_bar_reg;
+                    B_next <= cipher_reg;
+                    monPro_start <= '1';
+                end if;
+            when STATE_CM_MODN_DONE =>
+                if(shift_reg_out(0)='1') then
+                    shift <= '1';
+                    cipher_reg_en <= '1';
+                    cipher_nxt <= monPro_out;
+                else
+                    shift <= '1';
+                end if;
             when STATE_DONE =>
                 done_i <= '1';
             when others =>
@@ -204,13 +243,23 @@ begin
 -- Finite State Machine End --
 ------------------------------
 
+-- Cipher register
+    process(clk, reset) begin
+        if(reset='1') then
+            cipher_reg <= (others => '0');
+        elsif(clk'event and clk='1') then
+            if(cipher_reg_en='1') then
+                cipher_reg <= cipher_nxt;
+            end if;
+        end if;
+    end process;
 
 -- Loop Counter
     process(clk, reset) begin
         if(reset='1') then
             loop_counter <= (others => '0');
         elsif(clk'event and clk='1') then
-            if(State=STATE_CM_MODN) then
+            if(State=STATE_CM_MODN_DONE) then
                 loop_counter <= loop_counter + 1;
             elsif(State=STATE_IDLE) then
                 loop_counter <= (others => '0');
