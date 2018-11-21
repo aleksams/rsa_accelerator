@@ -4,12 +4,12 @@ import random
 class rsa_core:
     def __init__(self):
         print("init")
-        self.k_bits = 256
+        self.k_bits = 7
         self.maxNumber = math.pow(2, self.k_bits)
 
         #self.plainText  = random.randint(1, math.pow(2,self.k_bits))
         #self.plainText  = bin(self.plainText)format(7, '#010b')
-        self.Message        = 66
+        self.Message        = 19 #19
         self.bin_Message    = bin(self.Message)[2:].zfill(self.k_bits)
         #print("Msg",self.bin_Message)
         self.privateKey     = 77
@@ -40,50 +40,58 @@ class rsa_core:
     def MonPro(self, A,B):
         self.monPro_iter = self.monPro_iter + 1
         u = 0
+        #print(A)
         for i in range(self.k_bits):
             #print("bitnumber" ,self.k_bits-1-i," | ", A[self.k_bits-1-i])
 
             if (A[self.k_bits-1-i] == '1'):
                 u = u + B
-                print("After u=u+b I: ", i , ", u=",hex(u))
+                #print("After u=u+b I: ", i , ", u=",hex(u))
             if u%2 != 0:
                 u = u + self.modulo
-                print("After u=u+n I: ", i , ", u=",hex(u))
+                #print("After u=u+n I: ", i , ", u=",hex(u))
             u = u/2
-            print("After u/2, I: ", i , ", u=",hex(u))
+            #print("After u/2, I: ", i , ", u=",hex(u))
+
         if u > self.modulo:
             print("WOW storre", u)
             u = u - self.modulo
         return u
-    
-    def ModExp(self):
-        #r = math.pow(2,self.k_bits)
-
-        print("Message_bar = MonPro(message, r2_mod_n)")
-
-        Message_bar = self.MonPro(self.bin_Message, self.r2_mod_n)
-        bin_Message_bar = bin(int(Message_bar))[2:].zfill(self.k_bits)
-        print("Message_bar: ", Message_bar)
+        """ print("Message_bar: ", Message_bar)
         print("bin_Message_bar: ", bin_Message_bar)
         print("bin_message: ", self.bin_Message)
-        print("r2_mod_n", self.r2_mod_n)
-        return 0
-        x_bar = self.r_mod_n
+        print("r2_mod_n", self.r2_mod_n) 
+        print("KEY: ",self.bin_publicKey) """
 
+    def ModExp(self):
+
+        Message_bar = self.MonPro(self.bin_Message, self.r2_mod_n)
+
+        print("Message_bar", Message_bar, hex(Message_bar))
+        
+        bin_Message_bar = bin(int(Message_bar))[2:].zfill(self.k_bits)
+
+        x_bar = self.r_mod_n
+        print("self.r_mod_n", self.r_mod_n)
+        last_x = 0
         for i in range(self.k_bits):
             x_bar = int(x_bar)
             bin_x_bar = bin(x_bar)[2:].zfill(self.k_bits)
             x_bar = self.MonPro(bin_x_bar, x_bar)
-            #print(i, "x_bar:", x_bar)
+            print(i, "x_bar:", x_bar, hex(x_bar))
+            #if(last_x is not x_bar):
+            #    print(i, "x_bar:", x_bar, hex(x_bar))
+            last_x = x_bar
             if self.bin_publicKey[i] == '1':
                 x_bar = self.MonPro(bin_Message_bar, x_bar)
-                #print(i, "x_bar w publickey:", x_bar)
+                print(i, "x_bar key:", x_bar, hex(x_bar), Message_bar)
 
         x_bar = int(x_bar)
         last_x = bin(x_bar)[2:].zfill(self.k_bits)
         #print(last_x)
-        #print(last_x[7])
-        x = self.MonPro(last_x, 1)
+        ettall = bin(1)[2:].zfill(self.k_bits)
+        print("x iss: ", x_bar)
+        x = self.MonPro(ettall, x_bar)
         return x
     
     def decrypt(self, cipher, key):
@@ -99,15 +107,11 @@ class rsa_core:
             x_bar = int(x_bar)
             bin_x_bar = bin(x_bar)[2:].zfill(self.k_bits)
             x_bar = self.MonPro(bin_x_bar, x_bar)
-            #print(i, "x_bar:", x_bar)
             if key[i] == '1':
                 x_bar = self.MonPro(bin_cipher_bar, x_bar)
-                #print(i, "x_bar w publickey:", x_bar)
 
         x_bar = int(x_bar)
         last_x = bin(x_bar)[2:].zfill(self.k_bits)
-        #print(last_x)
-        #print(last_x[7])
         x = self.MonPro(last_x, 1)
         return x
 
@@ -118,9 +122,17 @@ class rsa_core:
 ############################
 def main():
     rsa = rsa_core()
+    
+    A    = 83 #19
+    A2   = bin(A)[2:].zfill(256)
+    #print(A2, A)
+    #cipher = rsa.MonPro(A2,1)
+   
     cipher = rsa.ModExp()
-    print("Cipher:", cipher)
+    print("Cipher:", cipher, hex(cipher))
+    
+
     #rsa.print_LF()
-    print("Antall ganger monPro kalt: ",rsa.monPro_iter)
+    #print("Antall ganger monPro kalt: ",rsa.monPro_iter)
 
 main()
