@@ -55,6 +55,7 @@ architecture Behavioral of modular_exponentiation is
     type State_type is (STATE_START, STATE_START_DONE, 
                         STATE_CC_MODN, STATE_CC_MODN_DONE, 
                         STATE_CM_MODN, STATE_CM_MODN_DONE, 
+                        STATE_C1_MODN, STATE_C1_MODN_DONE,
                         STATE_DONE, STATE_IDLE);
     
     -- STATE SIGNALS
@@ -176,10 +177,16 @@ begin
             -- 
             when STATE_CM_MODN_DONE =>
                 if(loop_counter=255) then
-                    State_nxt <= STATE_DONE;
+                    State_nxt <= STATE_C1_MODN;
                 else
                     State_nxt <= STATE_CC_MODN;
                 end if;
+            when STATE_C1_MODN =>
+                if(monPro_done='1') then
+                    State_nxt <= STATE_C1_MODN_DONE;
+                end if;
+            when STATE_C1_MODN_DONE =>
+                State_nxt <= STATE_DONE;
             -- DONE Description
             when STATE_DONE =>
                 State_nxt <= STATE_IDLE;
@@ -205,11 +212,12 @@ begin
         case(State) is
             when STATE_START =>
                 load_shift_reg <= '1';
-                cipher_nxt <= r_mod_n;
                 A_next <= message;
                 B_next <= r2_mod_n;
                 monPro_start <= '1';
             when STATE_START_DONE =>
+                cipher_reg_en <= '1';
+                cipher_nxt <= r_mod_n;
                 message_bar_reg_en <= '1';
                 message_bar_nxt <= monPro_out;
             when STATE_CC_MODN =>
@@ -233,6 +241,14 @@ begin
                 else
                     shift <= '1';
                 end if;
+            when STATE_C1_MODN =>
+                A_next <= cipher_reg;
+                B_next(0) <= '1';
+                B_next(255 downto 1) <= (others => '0');
+                monPro_start <= '1';
+            when STATE_C1_MODN_DONE =>
+                cipher_reg_en <= '1';
+                cipher_nxt <= monPro_out;
             when STATE_DONE =>
                 done_i <= '1';
             when others =>
@@ -243,7 +259,7 @@ begin
 -- Finite State Machine End --
 ------------------------------
 
--- Cipher register
+-- Cipher Register
     process(clk, reset) begin
         if(reset='1') then
             cipher_reg <= (others => '0');
@@ -253,6 +269,17 @@ begin
             end if;
         end if;
     end process;
+    
+-- Message_bar Register
+        process(clk, reset) begin
+            if(reset='1') then
+                message_bar_reg <= (others => '0');
+            elsif(clk'event and clk='1') then
+                if(message_bar_reg_en='1') then
+                    message_bar_reg <= message_bar_nxt;
+                end if;
+            end if;
+        end process;
 
 -- Loop Counter
     process(clk, reset) begin
