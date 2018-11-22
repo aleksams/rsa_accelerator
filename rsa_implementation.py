@@ -57,22 +57,35 @@ class rsa_core:
             print("WOW storre", u)
             u = u - self.modulo
         return u
-        """ print("Message_bar: ", Message_bar)
-        print("bin_Message_bar: ", bin_Message_bar)
-        print("bin_message: ", self.bin_Message)
-        print("r2_mod_n", self.r2_mod_n) 
-        print("KEY: ",self.bin_publicKey) """
+
+    def ModExp_Right_to_left(self):
+        C = self.r_mod_n
+        C_bin = bin(int(C))[2:].zfill(self.k_bits)
+
+        P = self.MonPro(self.bin_Message, self.r2_mod_n)
+        P_bin = bin(int(P))[2:].zfill(self.k_bits)
+        
+        for i in range(self.k_bits):
+            if self.bin_publicKey[self.k_bits-1-i] == '1':
+                C_bin = bin(int(C))[2:].zfill(self.k_bits)
+                C = self.MonPro(C_bin, P)
+
+            #P = int(x_bar)
+            P_bin = bin(P)[2:].zfill(self.k_bits)
+            P = self.MonPro(P_bin, P)
+
+        C_bin = bin(C)[2:].zfill(self.k_bits)
+        final = self.MonPro(C_bin, 1)
+       
+        return final
 
     def ModExp(self):
-
         Message_bar = self.MonPro(self.bin_Message, self.r2_mod_n)
-
-        print("Message_bar", Message_bar, hex(Message_bar))
-        
+        print("Message_bar", Message_bar, hex(Message_bar))        
         bin_Message_bar = bin(int(Message_bar))[2:].zfill(self.k_bits)
 
         x_bar = self.r_mod_n
-        print("self.r_mod_n", self.r_mod_n)
+        #print("self.r_mod_n", self.r_mod_n)
         last_x = 0
         for i in range(self.k_bits):
             x_bar = int(x_bar)
@@ -90,7 +103,7 @@ class rsa_core:
         last_x = bin(x_bar)[2:].zfill(self.k_bits)
         #print(last_x)
         ettall = bin(1)[2:].zfill(self.k_bits)
-        print("x iss: ", x_bar)
+        #print("x iss: ", x_bar)
         x = self.MonPro(ettall, x_bar)
         return x
     
@@ -122,15 +135,14 @@ class rsa_core:
 ############################
 def main():
     rsa = rsa_core()
-    
-    A    = 83 #19
-    A2   = bin(A)[2:].zfill(256)
+    bin_Message    = bin(19)[2:].zfill(8)
+    A    = 118 #19
+    A2   = bin(A)[2:].zfill(8)
     #print(A2, A)
-    #cipher = rsa.MonPro(A2,1)
+    #cipher = rsa.MonPro(bin_Message,81)
    
-    cipher = rsa.ModExp()
+    cipher = rsa.ModExp_Right_to_left()
     print("Cipher:", cipher, hex(cipher))
-    
 
     #rsa.print_LF()
     #print("Antall ganger monPro kalt: ",rsa.monPro_iter)
