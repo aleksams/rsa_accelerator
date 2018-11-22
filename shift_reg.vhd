@@ -35,7 +35,7 @@ use WORK.ALL;
 entity shift_reg is
     Port ( d_in  : in STD_LOGIC_VECTOR (255 downto 0);
            d_out : buffer STD_LOGIC_VECTOR (255 downto 0);
-           rst   : in STD_LOGIC;
+           rst_n   : in STD_LOGIC;
            clk   : in STD_LOGIC;
            shift : in STD_LOGIC;
            load  : in STD_LOGIC);
@@ -46,8 +46,8 @@ architecture Behavioral of shift_reg is
 signal out_nxt : STD_LOGIC_VECTOR (255 downto 0);
 
 begin
-    process(clk, rst) begin
-        if(rst='1') then
+    process(clk, rst_n) begin
+        if(rst_n='0') then
             d_out <= (others => '0');
         elsif(clk'event and clk='1') then
             d_out <= out_nxt;

@@ -41,7 +41,7 @@ entity modular_product is
            modulo   : in STD_LOGIC_VECTOR (255 downto 0);
 
            -- CONTROL
-           reset         : in STD_LOGIC;
+           reset_n         : in STD_LOGIC;
            clk           : in STD_LOGIC;
            start         : in STD_LOGIC;
            --data_accepted : in STD_LOGIC;
@@ -95,7 +95,7 @@ begin
     u_A_shift_reg: entity work.shift_reg
         port map (
          clk       => clk,
-         rst       => reset,
+         rst_n       => reset_n,
          -- inputs
          d_in      => A(255 downto 0),
          load      => load_shift_reg,
@@ -109,8 +109,8 @@ begin
 --------------------------------
 
 -- State Register
-    process(clk, reset) begin
-        if(reset='1') then
+    process(clk, reset_n) begin
+        if(reset_n='0') then
             State <= STATE_IDLE;
         elsif(clk'event and clk='1') then
             State <= State_nxt;
@@ -201,8 +201,8 @@ begin
 ------------------------------
 
 -- Product register
-    process(clk, reset) begin
-        if(reset='1') then
+    process(clk, reset_n) begin
+        if(reset_n='0') then
             product_reg <= (others => '0');
         elsif(clk'event and clk='1') then
             if(product_reg_en='1') then
@@ -212,8 +212,8 @@ begin
     end process;
     
 -- Loop Counter
-    process(clk, reset) begin
-        if(reset='1') then
+    process(clk, reset_n) begin
+        if(reset_n='0') then
             loop_counter <= (others => '0');
         elsif(clk'event and clk='1') then
             if(State=STATE_SHIFT) then

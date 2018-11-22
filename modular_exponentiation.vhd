@@ -38,7 +38,7 @@ entity modular_exponentiation is
     Port ( 
            -- Clock and Reset
            clk           : in STD_LOGIC;
-           reset         : in STD_LOGIC;
+           reset_n         : in STD_LOGIC;
            -- Inputs
            start         : in STD_LOGIC;
            message       : in STD_LOGIC_VECTOR (255 downto 0);
@@ -111,7 +111,7 @@ begin
   u_Monpro_1 : entity work.modular_product port map(
     -- Clocks and resets
     clk             => clk,
-    reset           => reset,
+    reset_n         => reset_n,
     -- Control Signals
     start           => monPro1_start,
     done            => monPro1_done,
@@ -127,7 +127,7 @@ begin
     u_Monpro_2 : entity work.modular_product port map(
     -- Clocks and resets
     clk             => clk,
-    reset           => reset,
+    reset_n         => reset_n,
     -- Control Signals
     start           => monPro2_start,
     done            => monPro2_done,
@@ -144,7 +144,7 @@ begin
   u_key_shift_reg: entity work.shift_reg
       port map (
        clk       => clk,
-       rst       => reset,
+       rst_n       => reset_n,
        -- inputs
        d_in      => key,
        load      => load_shift_reg,
@@ -158,8 +158,8 @@ begin
 --------------------------------
 
 -- State Register
-    process(clk, reset) begin
-        if(reset='1') then
+    process(clk, reset_n) begin
+        if(reset_n='0') then
             State <= STATE_IDLE;
         elsif(clk'event and clk='1') then
             State <= State_nxt;
@@ -305,8 +305,8 @@ begin
 ------------------------------
 
 -- Cipher Register
-    process(clk, reset) begin
-        if(reset='1') then
+    process(clk, reset_n) begin
+        if(reset_n='0') then
             cipher_reg <= (others => '0');
         elsif(clk'event and clk='1') then
             if(cipher_reg_en='1') then
@@ -316,8 +316,8 @@ begin
     end process;
     
 -- Message_bar Register
-        process(clk, reset) begin
-            if(reset='1') then
+        process(clk, reset_n) begin
+            if(reset_n='0') then
                 P_reg <= (others => '0');
             elsif(clk'event and clk='1') then
                 if(P_reg_en='1') then
@@ -327,8 +327,8 @@ begin
         end process;
 
 -- Loop Counter
-    process(clk, reset) begin
-        if(reset='1') then
+    process(clk, reset_n) begin
+        if(reset_n='0') then
             loop_counter <= (others => '0');
         elsif(clk'event and clk='1') then
             if(State=STATE_CC_MODN_DONE) then
