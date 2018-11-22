@@ -41,10 +41,11 @@ entity modular_product is
            modulo   : in STD_LOGIC_VECTOR (255 downto 0);
 
            -- CONTROL
-           reset    : in STD_LOGIC;
-           clk      : in STD_LOGIC;
-           start    : in STD_LOGIC;
-           done     : out STD_LOGIC;
+           reset         : in STD_LOGIC;
+           clk           : in STD_LOGIC;
+           start         : in STD_LOGIC;
+           --data_accepted : in STD_LOGIC;
+           done          : out STD_LOGIC;
 
            -- OUTPUT VALUES
            product  : out STD_LOGIC_VECTOR (255 downto 0));
@@ -82,6 +83,11 @@ begin
 
     --u_odd <= product_reg(0) xor (data_shift_reg(0) and B(0));
 -- Assignments
+    --process(product_reg, done_i) begin
+    --    for i in 0 to 255 loop
+    --        product(i) <= done_i and product_reg(i);
+    --    end loop;
+    --end process;
     product <= product_reg(255 downto 0);
     done <= done_i;
 
@@ -132,7 +138,7 @@ begin
                 State_nxt <= STATE_SHIFT;
             -- SHIFT Description
             when STATE_SHIFT =>
-                if(loop_counter=255) then
+                if(loop_counter=6) then
                     State_nxt <= STATE_SUB_N;
                 else
                     State_nxt <= STATE_ADD_AB;
@@ -142,7 +148,9 @@ begin
                 State_nxt <= STATE_DONE;
             -- DONE Description
             when STATE_DONE =>
-                State_nxt <= STATE_IDLE;
+                --if(data_accepted='1') then
+                    State_nxt <= STATE_IDLE;
+                --end if;
             -- Other Description
             --when others =>
             --    State_nxt <= STATE_IDLE;
