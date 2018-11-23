@@ -1,222 +1,232 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 13.11.2018 13:56:26
--- Design Name: 
--- Module Name: MonPro - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
+-- Company:
+-- Engineer:
+--
+-- Create Date: 15.10.2018 10:20:03
+-- Design Name:
+-- Module Name: modular_product - Behavioral
+-- Project Name:
+-- Target Devices:
+-- Tool Versions:
+-- Description:
+--
+-- Dependencies:
+--
 -- Revision:
 -- Revision 0.01 - File Created
 -- Additional Comments:
--- 
+--
 ----------------------------------------------------------------------------------
 
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+use WORK.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
-use IEEE.NUMERIC_STD.ALL;
+--use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if instantiating
 -- any Xilinx leaf cells in this code.
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-entity MonPro is
-    Port ( 
-            clk      : in STD_LOGIC;
-            reset_n  : in STD_LOGIC;
-            A        : in STD_LOGIC_VECTOR (255 downto 0);
-            B        : in STD_LOGIC_VECTOR (255 downto 0);
-            modulo   : in STD_LOGIC_VECTOR (255 downto 0);
-            Start    : in STD_LOGIC;
-            
-            Done     : out STD_LOGIC;   -- TODO: koblings
-            Product  : out STD_LOGIC_VECTOR (255 downto 0));            
-end MonPro;
+entity modular_product is
+    Generic (
+           DATA_WIDTH : integer;
+           R_SIZE     : integer);
+    Port (
+           -- INPUT VALUES
+           A        : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+           B        : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+           modulo   : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
 
-architecture Behavioral of MonPro is
+           -- CONTROL
+           reset_n       : in STD_LOGIC;
+           clk           : in STD_LOGIC;
+           start         : in STD_LOGIC;
+           --data_accepted : in STD_LOGIC;
+           done          : out STD_LOGIC;
 
--- Internal signals
+           -- OUTPUT VALUES
+           product  : out STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0));
+end modular_product;
 
--- Internal regs
-signal u_reg:             std_logic_vector(257 downto 0); -- k + 1 bits
-signal u_next:            std_logic_vector(257 downto 0); -- k + 1 bits
-signal for_counter_reg:   unsigned(7 downto 0);           -- skal fjernes
-signal for_counter_reg2:  std_logic_vector(7 downto 0);
-signal state:             unsigned(2 downto 0);
-signal add_counter:       unsigned(2 downto 0);
+architecture Behavioral of modular_product is
 
-signal is_minus:             std_logic;  
-signal working:              std_logic;
-signal done_signal:          std_logic;
-signal last_bit:             std_logic;
-signal adder_sum_valid:      std_logic;
-signal add_cycle:            std_logic;
-signal u_minus_n_done:       std_logic;
-signal last_operation:       std_logic;
+    -- STATE DEFINITIONS
+    type State_type is (STATE_START, STATE_ADD_AB, STATE_ADD_N, STATE_SHIFT, STATE_SUB_N, STATE_DONE, STATE_IDLE);
+    
+    -- STATE SIGNALS
+    signal State, State_nxt : State_Type;
+    
+    -- Internal
+    signal done_i : STD_LOGIC;
 
-signal doing_UplusB:        std_logic; -- skal fjernes
-signal doing_UplusN:        std_logic; -- skal fjernes
+    -- Shift Register for A
+    signal load_shift_reg : STD_LOGIC;
+    signal shift          : STD_LOGIC; 
+    signal shift_reg_out  : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
 
-  -- signals to adder
---signal A_reg, B_reg : std_logic_vector(255 downto 0);
-signal carry_in: std_logic;
-signal Num_1, Num_2: std_logic_vector(256 downto 0); -- k + 1 bits
-signal add_enable: std_logic;
+    -- Product Register
+    signal product_nxt    : STD_LOGIC_VECTOR (DATA_WIDTH+1 downto 0);
+    signal product_reg    : STD_LOGIC_VECTOR (DATA_WIDTH+1 downto 0); 
+    signal product_reg_en : STD_LOGIC;
 
--- signals from adder
-signal sum_from_adder: std_logic_vector(257 downto 0);
-signal carry_out: std_logic;
-
-
+    -- Loop control
+    signal loop_counter : UNSIGNED (7 downto 0); -- count to 256
+    signal loop_reg_en  : STD_LOGIC;
+    
+    -- regs
+    -- product_reg: 258
+    -- shift_reg_out: 256
+    -- State: 3
+    -- loop_counter: 10
+    -- totalt 527
 
 begin
-      -- Instantiate adder
-    u_full_adder : entity work.full_adder port map(
-      clk         => clk,
-      reset_n     => reset_n,
-      add_enable  => add_enable,
-      is_minus    => is_minus,
-      Num_1       => Num_1,
-      Num_2       => Num_2,
-      full_sum    => sum_from_adder,
-      out_valid   => adder_sum_valid
-    );
 
-    process(clk, reset_n) 
-        variable FOR_I : natural range 0 to 520 := 0; -- TODO sette riktig
-    begin
-        if(reset_n = '0') then
-            -- Iternal
-             u_reg           <= (others => '0');
-             for_counter_reg <= (others => '0'); -- skal fjernes
-             state           <= (others => '0');
-             done_signal     <= '0';
-             last_bit        <= '0';
-             add_counter  <= (others => '0');
-             doing_UplusB <= '0'; -- skal fjernes
-             doing_UplusN <= '0'; -- skal fjernes
-             add_cycle    <= '0';
-             u_minus_n_done <= '0';
-             is_minus     <= '0';
-             last_operation <= '0';
-             
-            -- Adder
-             add_enable  <= '0';
-             Num_1       <= (others => '0');
-             Num_2       <= (others => '0');
-             u_next <= (others => '0');
-           
-        elsif(clk'event and clk='1') then
-            u_next <= sum_from_adder;
-            if(FOR_I = 255 and state = "000") then
-                FOR_I := 0;
-                last_bit <= '1';
-            elsif(working = '1') then
-                if(u_minus_n_done = '1') then
-                    done_signal <= '1';
-                elsif(add_cycle = '1') then
-                    doing_UplusB <= '0';
-                    doing_UplusN <= '0';
-                   
-                    if(add_counter = "100") then
-                        add_counter <= add_counter + 1;
-                        add_enable <= '0';
-                    elsif(add_counter = "101") then
-                        u_reg <= u_next;
-                        add_cycle <= '0';
-                        if(is_minus = '1') then
-                            u_minus_n_done <= '1';
-                        end if;
-                    else
-                        add_counter <= add_counter + 1;
-                        
-                    end if;
-                else
-                
-                    add_counter <= (others => '0');
-                    if(last_operation = '1') then --?
-                        last_operation <= '1';
-                    elsif(A(FOR_I) = '1' and state = "000") then
-                        add_cycle <= '1';
-                        add_enable <= '1';
-                        Num_1 <= u_reg(256 downto 0); -- 257 bitten brukes ikke siden det er skiften ned
-                        Num_2 <= '0' & B;  
-                        state <= state + 1;
-                        doing_UplusB <= '1';
 
---                    elsif((u_reg(0) = '1' xor (A(FOR_I)='1' and B(0)='1')) and state = "001") then -- is odd and correct state
-                    elsif(state = "001") then
-                        if(u_reg(0)='1') then 
-                            add_cycle <= '1';
-                            add_enable <= '1';
-                            Num_1 <= u_reg(256 downto 0); -- 257 bitten brukes ikke siden det er skiften ned
-                            Num_2 <= '0' & modulo;
-                            doing_UplusN <= '1';
-                        end if;
-                        state <= state + 1;
-                        
-                    elsif(state = "010") then
-                        u_reg(257 downto 0) <= '0' & u_reg(257 downto 1); -- mulig å comboe med u_nex
-                                                
-                        FOR_I := FOR_I + 1;
-                        for_counter_reg <= for_counter_reg + 1; -- skal fjernes
-                        if(last_bit = '1' and u_minus_n_done = '1') then
-                            done_signal <= '1';
-                        elsif(last_bit = '1') then
-                            state <= "110"; 
-                        else
-                            state <= "000";
-                        end if;
-                    elsif(state = "110") then -- u minus n
-                        
-                        if(unsigned(u_reg)>unsigned(modulo)) then
-                            add_cycle <= '1';
-                            add_enable <= '1';
-                            Num_1 <= u_reg(256 downto 0);
-                            Num_2 <= '0' & not modulo;
-                            is_minus <= '1';
-                        else 
-                            done_signal <= '1';
-                        end if;
-                        
-                    else
-                        state <= state + 1;
-                        add_enable <= '0';
-                       
-                    end if; -- State if, kan byttes i switch
-                end if; -- if add_cycle
-            else -- elsif working = '1'
-                add_enable <= '0';
-            end if; -- elsif working = '1'
-        end if; -- reset clk
-    end process;
+    product <= product_reg(DATA_WIDTH-1 downto 0);
+    done <= done_i;
 
-    process (clk, reset_n) begin
-        if(reset_n = '0') then
-            working <= '0';
-        elsif(clk'event and clk='1') then
+-- Shift Register Entity for A
+    u_A_shift_reg: entity work.shift_reg
+        generic  map(
+          DATA_WIDTH => DATA_WIDTH
+        )
+        port map (
+         clk       => clk,
+         rst_n     => reset_n,
+         -- inputs
+         d_in      => A(DATA_WIDTH-1 downto 0),
+         load      => load_shift_reg,
+         shift     => shift,
+         -- output
+         d_out     => shift_reg_out (DATA_WIDTH-1 downto 0)
+        );
         
-            if(Start = '1') then
-                Done <= '0';
-                working <= '1';
-                Product <= (others => '0');
-            elsif(done_signal = '1') then
-                working <= '0';
-                Done <= '1';
-                Product <= u_reg(255 downto 0);
-            end if;
-            
+--------------------------------
+-- Finite State Machine Begin --
+--------------------------------
+
+-- State Register
+    process(clk, reset_n) begin
+        if(reset_n='0') then
+            State <= STATE_IDLE;
+        elsif(clk'event and clk='1') then
+            State <= State_nxt;
         end if;
     end process;
+    
+-- Next State
+    process(State, start, loop_counter) begin
+        State_nxt <= State;
+        case( State ) is
+            -- IDLE Description
+            when STATE_IDLE =>
+                if(start='1') then
+                    State_nxt <= STATE_START;
+                else
+                    State_nxt <= STATE_IDLE;
+                end if;
+            -- START Description
+            when STATE_START =>
+                State_nxt <= STATE_ADD_AB;
+            -- ADD_AB Description
+            when STATE_ADD_AB =>
+                State_nxt <= STATE_ADD_N;
+            -- ADD_N Description
+            when STATE_ADD_N =>
+                State_nxt <= STATE_SHIFT;
+            -- SHIFT Description
+            when STATE_SHIFT =>
+                if(loop_counter=R_SIZE-1) then
+                    State_nxt <= STATE_SUB_N;
+                else
+                    State_nxt <= STATE_ADD_AB;
+                end if;
+            -- SUB_N Description
+            when STATE_SUB_N =>
+                State_nxt <= STATE_DONE;
+            -- DONE Description
+            when STATE_DONE =>
+                --if(data_accepted='1') then
+                    State_nxt <= STATE_IDLE;
+                --end if;
+            -- Other Description
+            when others =>
+                State_nxt <= STATE_IDLE;
+        end case;
+    end process;
+
+-- System controll
+    process(State, loop_counter, shift_reg_out, product_reg, B, modulo) begin
+        load_shift_reg <= '0';
+        shift          <= '0';
+        product_reg_en <= '0';
+        product_nxt    <= product_reg;
+        done_i         <= '0';
+        loop_reg_en    <= '0';
+        case(State) is
+            when STATE_START =>
+                load_shift_reg <= '1';
+                product_reg_en <= '1';
+                product_nxt <= (others => '0');
+            when STATE_ADD_AB =>
+                product_reg_en <= '1';
+                if(shift_reg_out(0)='1') then
+                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) + UNSIGNED("00" & B));
+                end if;
+            when STATE_ADD_N =>
+                product_reg_en <= '1';
+                if(product_reg(0)='1') then
+                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) + UNSIGNED("00" & modulo));
+                end if;
+            when STATE_SHIFT =>
+                shift <= '1';
+                loop_reg_en <= '1';
+                product_reg_en <= '1';
+                product_nxt <= "0" & product_reg(DATA_WIDTH+1 downto 1);
+            when STATE_SUB_N =>
+                product_reg_en <= '1';
+                if(UNSIGNED(product_reg) >= UNSIGNED(modulo)) then
+                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) - UNSIGNED("00" & modulo));
+                end if;
+            when STATE_DONE =>
+                done_i <= '1';
+            when others =>
+        end case;
+    end process;
+    
+------------------------------
+-- Finite State Machine End --
+------------------------------
+
+-- Product register
+    process(clk, reset_n) begin
+        if(reset_n='0') then
+            product_reg <= (others => '0');
+        elsif(clk'event and clk='1') then
+            if(product_reg_en='1') then
+                product_reg <= product_nxt;
+            end if;
+        end if;
+    end process;
+    
+-- Loop Counter
+    process(clk, reset_n) begin
+        if(reset_n='0') then
+            loop_counter <= (others => '0');
+        elsif(clk'event and clk='1') then
+            if(State=STATE_SHIFT) then
+                loop_counter <= loop_counter + 1;
+            elsif(State=STATE_IDLE) then
+                loop_counter <= (others => '0');
+            end if;
+        end if;
+    end process;
+
 end Behavioral;
