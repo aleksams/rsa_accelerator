@@ -100,12 +100,15 @@ architecture Behavioral of modular_exponentiation is
     -- Loop control
     signal loop_counter : UNSIGNED (7 downto 0); -- count to 256
     signal loop_reg_en  : STD_LOGIC;
+    
+    signal r : STD_LOGIC_VECTOR (256 downto 0);
 begin
 
 -- Assignments
     shift_reg_reduced <= or_reduce(shift_reg_out);
     cipher <= cipher_reg;
     done <= done_i;
+    r <= std_logic_vector(unsigned("0" & modulo)+unsigned("0" & r_mod_n));
 
 -- Instantiate the MonPros
   u_Monpro_1 : entity work.modular_product port map(
@@ -217,8 +220,8 @@ begin
             when STATE_DONE =>
                 State_nxt <= STATE_IDLE;
             -- Other Description
-            --when others =>
-            --    State_nxt <= STATE_IDLE;
+            when others =>
+                State_nxt <= STATE_IDLE;
         end case;
     end process;
 

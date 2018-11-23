@@ -34,21 +34,23 @@ use WORK.ALL;
 --use UNISIM.VComponents.all;
 
 entity modular_product is
+    Generic (
+           DATA_WIDTH : integer := 256);
     Port (
            -- INPUT VALUES
-           A        : in STD_LOGIC_VECTOR (255 downto 0);
-           B        : in STD_LOGIC_VECTOR (255 downto 0);
-           modulo   : in STD_LOGIC_VECTOR (255 downto 0);
+           A        : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+           B        : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+           modulo   : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
 
            -- CONTROL
-           reset_n         : in STD_LOGIC;
+           reset_n       : in STD_LOGIC;
            clk           : in STD_LOGIC;
            start         : in STD_LOGIC;
            --data_accepted : in STD_LOGIC;
            done          : out STD_LOGIC;
 
            -- OUTPUT VALUES
-           product  : out STD_LOGIC_VECTOR (255 downto 0));
+           product  : out STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0));
 end modular_product;
 
 architecture Behavioral of modular_product is
@@ -71,12 +73,12 @@ architecture Behavioral of modular_product is
     signal shift_reg_out  : STD_LOGIC_VECTOR (255 downto 0);
 
     -- Product Register
-    signal product_nxt    : STD_LOGIC_VECTOR (256 downto 0);
-    signal product_reg    : STD_LOGIC_VECTOR (256 downto 0);
+    signal product_nxt    : STD_LOGIC_VECTOR (257 downto 0);
+    signal product_reg    : STD_LOGIC_VECTOR (257 downto 0);
     signal product_reg_en : STD_LOGIC;
 
     -- Loop control
-    signal loop_counter : UNSIGNED (7 downto 0); -- count to 256
+    signal loop_counter : UNSIGNED (9 downto 0); -- count to 256
     signal loop_reg_en  : STD_LOGIC;
 
 begin
@@ -138,7 +140,7 @@ begin
                 State_nxt <= STATE_SHIFT;
             -- SHIFT Description
             when STATE_SHIFT =>
-                if(loop_counter=6) then
+                if(loop_counter=255) then
                     State_nxt <= STATE_SUB_N;
                 else
                     State_nxt <= STATE_ADD_AB;
@@ -152,8 +154,8 @@ begin
                     State_nxt <= STATE_IDLE;
                 --end if;
             -- Other Description
-            --when others =>
-            --    State_nxt <= STATE_IDLE;
+            when others =>
+                State_nxt <= STATE_IDLE;
         end case;
     end process;
 
@@ -173,22 +175,22 @@ begin
             when STATE_ADD_AB =>
                 product_reg_en <= '1';
                 if(shift_reg_out(0)='1') then
-                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) + UNSIGNED("0" & B));
+                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) + UNSIGNED("00" & B));
                 end if;
             when STATE_ADD_N =>
                 product_reg_en <= '1';
                 if(product_reg(0)='1') then
-                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) + UNSIGNED("0" & modulo));
+                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) + UNSIGNED("00" & modulo));
                 end if;
             when STATE_SHIFT =>
                 shift <= '1';
                 loop_reg_en <= '1';
                 product_reg_en <= '1';
-                product_nxt <= "0" & product_reg(256 downto 1);
+                product_nxt <= "0" & product_reg(257 downto 1);
             when STATE_SUB_N =>
                 product_reg_en <= '1';
                 if(UNSIGNED(product_reg) >= UNSIGNED(modulo)) then
-                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) - UNSIGNED("0" & modulo));
+                    product_nxt <= STD_LOGIC_VECTOR(UNSIGNED(product_reg) - UNSIGNED("00" & modulo));
                 end if;
             when STATE_DONE =>
                 done_i <= '1';

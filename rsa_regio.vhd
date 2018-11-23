@@ -39,6 +39,8 @@ entity rsa_regio is
 		-- Users to add ports here
 		key_e_d      : out std_logic_vector(C_BLOCK_SIZE-1 downto 0);
 		key_n        : out std_logic_vector(C_BLOCK_SIZE-1 downto 0);
+		r_mod_n      : out std_logic_vector(C_BLOCK_SIZE-1 downto 0);
+        r2_mod_n     : out std_logic_vector(C_BLOCK_SIZE-1 downto 0);
 		rsa_status   : in  std_logic_vector(31 downto 0);
 
 		-- User ports ends
