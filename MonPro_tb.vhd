@@ -199,36 +199,63 @@ begin
                             assert Product = x"50be949725fd5ccb1e8d6b22f365638a839983332202d97742dc91467b0a8670"
                                 report "Product did not match expected value"
                                 severity Failure;
-                             --50be949725fd5ccb1e8d6b22f365638a839983332202d97742dc91467b0a8670   
+                                
                         elsif(testcaseA_counter = "000") then
                             assert Product = zero_vector
                                 report "Product did not match expected value"
                                 severity Failure;
                         end if;
                     
-                    when "101" =>   
+                    when "100" =>   
                         if(testcaseA_counter = "001") then
-                            assert Product = x"8ff89b00530af9bed5675b8a1829874dc1627702b387709f4ef989c8d555a6cc"
+                            assert Product = x"630de1bddfc25d33a2c55174d449e36a2b3f29571e80e36a642abd4bbcaacfc3"
                                 report "Product did not match expected value"
                                 severity Failure;
                                 
                         elsif(testcaseA_counter = "010") then
-                            assert Product = x"8fef8075b29c06fd1d04cd58fb314cd16fbdc214d4920eda7260b4f9a0d5b7e0"
+                            assert Product = x"04688fb73a2e23bdc2af5b56abee24e34ffc53f413fed74351aea7f9502fde77"
                                 report "Product did not match expected value"
                                 severity Failure;
                             
                         elsif(testcaseA_counter = "100") then
-                            assert Product = x"07098542dc237b9d260603861835d8f17a500eb2b60968141b1721a2ab4e6cc3"
+                            assert Product = x"4513d6f2cac9d0f3e2824513053d879f7cfea7f3470ac62d11e97c72e2a34187"
                                 report "Product did not match expected value"
                                 severity Failure;
                                 
-                        elsif(testcaseA_counter = x"4513d6f2cac9d0f3e2824513053d879f7cfea7f3470ac62d11e97c72e2a34187") then
+                        elsif(testcaseA_counter = x"d6254e5eb95159849f04cd56d241c434d3373de447a1865cfdd0c84b80f569a") then
                             assert Product = x""
                                 report "Product did not match expected value"
                                 severity Failure;
                              --   
                         elsif(testcaseA_counter = "000") then
                             assert Product = x"50be949725fd5ccb1e8d6b22f365638a839983332202d97742dc91467b0a8670"
+                                report "Product did not match expected value"
+                                severity Failure;
+                        end if;
+                        
+                    when "101" =>   
+                        if(testcaseA_counter = "001") then
+                            assert Product = x"0cca89c0caf3bebe99d89849692a842cc341a9fd9292944078bd1318731ab024"
+                                report "Product did not match expected value"
+                                severity Failure;
+                                
+                        elsif(testcaseA_counter = "010") then
+                            assert Product = x"319589eb921e7064ec40a017d6aa3c2cabad1f9f1dfbd1738045eaf8241e9e23"
+                                report "Product did not match expected value"
+                                severity Failure;
+                            
+                        elsif(testcaseA_counter = "100") then
+                            assert Product = x"50be949725fd5ccb1e8d6b22f365638a839983332202d97742dc91467b0a8670"
+                                report "Product did not match expected value"
+                                severity Failure;
+                                
+                        elsif(testcaseA_counter = x"3ecd066d5a00d0e5822b618d7936098385e2cd930b9a18031c1564f58ba8ef4f") then
+                            assert Product = x""
+                                report "Product did not match expected value"
+                                severity Failure;
+                             --   
+                        elsif(testcaseA_counter = "000") then
+                            assert Product = x"3ecd066d5a00d0e5822b618d7936098385e2cd930b9a18031c1564f58ba8ef4f"
                                 report "Product did not match expected value"
                                 severity Failure;
                         end if;
@@ -262,7 +289,6 @@ begin
                     A <= teststring1;
                     testcaseA_counter <= testcaseA_counter + 1;
                     Start       <= '1';
-
                             
                   when "001" =>
                     A <= teststring2;
@@ -279,7 +305,6 @@ begin
                     A <= teststring4;  
                     testcaseA_counter <= testcaseA_counter + 1;
                     Start       <= '1';
-
                             
                   when "100" =>
                     A <= teststring5;
