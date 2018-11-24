@@ -1,22 +1,19 @@
-----------------------------------------------------------------------------------
--- Company:
--- Engineer:
---
--- Create Date: 15.10.2018 10:20:03
--- Design Name:
--- Module Name: modular_product - Behavioral
--- Project Name:
--- Target Devices:
--- Tool Versions:
--- Description:
---
--- Dependencies:
---
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
---
-----------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Author       : Aleksander Skarnes, Eivind Erichsen and Halvor Horvei
+-- Organization : Norwegian University of Science and Technology (NTNU)
+--                Department of Electronic Systems
+--                https://www.ntnu.edu/ies
+-- Course       : TFE4141 Design of digital systems 1 (DDS1)
+-- Year         : 2018
+-- Project      : RSA accelerator
+-- Module       : Modular Product
+-- License      : This is free and unencumbered software released into the 
+--                public domain (UNLICENSE)
+--------------------------------------------------------------------------------
+-- Purpose: 
+--   Calculate the Montgomery modular product
+--   U = AB mod modulo.
+--------------------------------------------------------------------------------
 
 
 library IEEE;
@@ -34,27 +31,27 @@ entity modular_product is
            A        : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
            B        : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
            modulo   : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
-
            -- CONTROL
            reset_n       : in STD_LOGIC;
            clk           : in STD_LOGIC;
            start         : in STD_LOGIC;
-           --data_accepted : in STD_LOGIC;
            done          : out STD_LOGIC;
-
            -- OUTPUT VALUES
            product  : out STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0));
 end modular_product;
 
 architecture Behavioral of modular_product is
 
-    -- STATE DEFINITIONS
-    type State_type is (STATE_START, STATE_ADD_AB, STATE_ADD_N, STATE_SHIFT, STATE_SUB_N, STATE_DONE, STATE_IDLE);
+    -- State Definitions
+    type State_type is (STATE_START, STATE_ADD_AB, 
+                        STATE_ADD_N, STATE_SHIFT , 
+                        STATE_SUB_N, STATE_DONE  , 
+                        STATE_IDLE               );
     
-    -- STATE SIGNALS
+    -- State Signals
     signal State, State_nxt : State_Type;
     
-    -- Internal
+    -- Internal Signal
     signal done_i : STD_LOGIC;
 
     -- Shift Register for A
@@ -73,7 +70,7 @@ architecture Behavioral of modular_product is
     
 begin
 
-
+-- Assignments
     product <= product_reg(DATA_WIDTH-1 downto 0);
     done <= done_i;
 
@@ -83,13 +80,14 @@ begin
           DATA_WIDTH => DATA_WIDTH
         )
         port map (
+        -- Clock and Reset
          clk       => clk,
          rst_n     => reset_n,
-         -- inputs
-         d_in      => A(DATA_WIDTH-1 downto 0),
+         -- Inputs
+         d_in      => A (DATA_WIDTH-1 downto 0),
          load      => load_shift_reg,
          shift     => shift,
-         -- output
+         -- Output
          d_out     => shift_reg_out (DATA_WIDTH-1 downto 0)
         );
         
@@ -110,38 +108,35 @@ begin
     process(State, start, loop_counter) begin
         State_nxt <= State;
         case( State ) is
-            -- IDLE Description
             when STATE_IDLE =>
                 if(start='1') then
                     State_nxt <= STATE_START;
                 else
                     State_nxt <= STATE_IDLE;
                 end if;
-            -- START Description
+
             when STATE_START =>
                 State_nxt <= STATE_ADD_AB;
-            -- ADD_AB Description
+
             when STATE_ADD_AB =>
                 State_nxt <= STATE_ADD_N;
-            -- ADD_N Description
+
             when STATE_ADD_N =>
                 State_nxt <= STATE_SHIFT;
-            -- SHIFT Description
+
             when STATE_SHIFT =>
-                if(loop_counter=R_SIZE-1) then
+                if(loop_counter=(R_SIZE-1)) then
                     State_nxt <= STATE_SUB_N;
                 else
                     State_nxt <= STATE_ADD_AB;
                 end if;
-            -- SUB_N Description
+
             when STATE_SUB_N =>
                 State_nxt <= STATE_DONE;
-            -- DONE Description
+
             when STATE_DONE =>
-                --if(data_accepted='1') then
-                    State_nxt <= STATE_IDLE;
-                --end if;
-            -- Other Description
+                State_nxt <= STATE_IDLE;
+
             when others =>
                 State_nxt <= STATE_IDLE;
         end case;

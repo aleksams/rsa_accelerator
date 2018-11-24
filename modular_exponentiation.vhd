@@ -1,38 +1,26 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 15.10.2018 10:20:03
--- Design Name: 
--- Module Name: rsa_core - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
-
+--------------------------------------------------------------------------------
+-- Author       : Aleksander Skarnes, Eivind Erichsen and Halvor Horvei
+-- Organization : Norwegian University of Science and Technology (NTNU)
+--                Department of Electronic Systems
+--                https://www.ntnu.edu/ies
+-- Course       : TFE4141 Design of digital systems 1 (DDS1)
+-- Year         : 2018
+-- Project      : RSA accelerator
+-- Module       : Modular Exponentiation
+-- License      : This is free and unencumbered software released into the 
+--                public domain (UNLICENSE)
+--------------------------------------------------------------------------------
+-- Purpose: 
+--   Calculate
+--   C = M**key mod modulo
+--   using the LR Binary Method.
+--------------------------------------------------------------------------------
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use IEEE.STD_LOGIC_MISC.ALL;
 use work.all;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
 
 entity modular_exponentiation is
     Generic (
@@ -41,27 +29,29 @@ entity modular_exponentiation is
     Port ( 
            -- Clock and Reset
            clk           : in STD_LOGIC;
-           reset_n         : in STD_LOGIC;
-           -- Inputs
+           reset_n       : in STD_LOGIC;
+           -- Control Signals
            start         : in STD_LOGIC;
+           done          : out STD_LOGIC;
+           -- Inputs
            message       : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
            key           : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
            modulo        : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
            r_mod_n       : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
            r2_mod_n      : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
            -- Outputs
-           done          : out STD_LOGIC;
            cipher        : out STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0));
 end modular_exponentiation;
 
 architecture Behavioral of modular_exponentiation is
     
-    type State_type is (STATE_START, STATE_START_DONE, 
-                        STATE_CC_MODN, STATE_CC_MODN_DONE, 
+    -- State Definition
+    type State_type is (STATE_START,   STATE_START_DONE, 
+                        STATE_CP_MODN, STATE_CP_MODN_DONE, 
                         STATE_C1_MODN, STATE_C1_MODN_DONE,
-                        STATE_DONE, STATE_IDLE);
+                        STATE_DONE,    STATE_IDLE);
     
-    -- STATE SIGNALS
+    -- State Signals
     signal State, State_nxt : State_Type;
     
     -- Internal Signals
@@ -70,7 +60,6 @@ architecture Behavioral of modular_exponentiation is
     -- MonPro1 Signals
     signal monPro1_start         : STD_LOGIC;
     signal monPro1_done          : STD_LOGIC;
-    --signal monPro1_data_accepted : STD_LOGIC;
     signal monPro1_A_next        : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
     signal monPro1_B_next        : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
     signal monPro1_out           : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
@@ -78,21 +67,20 @@ architecture Behavioral of modular_exponentiation is
     -- MonPro2 Signals
     signal monPro2_start         : STD_LOGIC;
     signal monPro2_done          : STD_LOGIC;
-    --signal monPro2_data_accepted : STD_LOGIC;
     signal monPro2_A_next        : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
     signal monPro2_B_next        : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
     signal monPro2_out           : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
     
     -- Key Shift Register
-    signal load_shift_reg : STD_LOGIC;
-    signal shift          : STD_LOGIC;
-    signal shift_reg_out  : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+    signal load_shift_reg    : STD_LOGIC;
+    signal shift             : STD_LOGIC;
+    signal shift_reg_out     : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
     signal shift_reg_reduced : STD_LOGIC;
     
     -- P Register
-    signal P_reg_en : STD_LOGIC;
-    signal P_reg : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
-    signal P_nxt : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
+    signal P_reg_en  : STD_LOGIC;
+    signal P_reg     : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
+    signal P_nxt     : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
     
     -- Cipher Text Register
     signal cipher_reg_en : STD_LOGIC;
@@ -110,64 +98,62 @@ begin
     cipher <= cipher_reg;
     done <= done_i;
 
--- Instantiate the MonPros
+-- Instantiate two MonPros
   u_Monpro_1 : entity work.modular_product 
-  generic  map(
-    DATA_WIDTH => DATA_WIDTH,
-    R_SIZE     => R_SIZE
-  )
-  port map(
-    -- Clocks and resets
-    clk             => clk,
-    reset_n         => reset_n,
-    -- Control Signals
-    start           => monPro1_start,
-    done            => monPro1_done,
-    --data_accepted   => monPro1_data_accepted,
-    -- Inputs
-    A               => monPro1_A_next,
-    B               => monPro1_B_next,
-    modulo          => modulo,
-    -- Outputs
-    product         => monPro1_out
-  );
+    generic  map(
+      DATA_WIDTH => DATA_WIDTH,
+      R_SIZE     => R_SIZE
+    )
+    port map(
+      -- Clocks and resets
+      clk             => clk,
+      reset_n         => reset_n,
+      -- Control Signals
+      start           => monPro1_start,
+      done            => monPro1_done,
+      -- Inputs
+      A               => monPro1_A_next,
+      B               => monPro1_B_next,
+      modulo          => modulo,
+      -- Outputs
+      product         => monPro1_out
+    );
   
-    u_Monpro_2 : entity work.modular_product 
+  u_Monpro_2 : entity work.modular_product 
     generic  map(
       DATA_WIDTH => DATA_WIDTH,
       R_SIZE     => R_SIZE
     )    
     port map(
-    -- Clocks and resets
-    clk             => clk,
-    reset_n         => reset_n,
-    -- Control Signals
-    start           => monPro2_start,
-    done            => monPro2_done,
-    --data_accepted   => monPro2_data_accepted,
-    -- Inputs
-    A               => monPro2_A_next,
-    B               => monPro2_B_next,
-    modulo          => modulo,
-    -- Outputs
-    product         => monPro2_out
-  );
+      -- Clocks and resets
+      clk             => clk,
+      reset_n         => reset_n,
+      -- Control Signals
+      start           => monPro2_start,
+      done            => monPro2_done,
+      -- Inputs
+      A               => monPro2_A_next,
+      B               => monPro2_B_next,
+      modulo          => modulo,
+      -- Outputs
+      product         => monPro2_out
+    );
   
   -- Shift Register Entity for Key
   u_key_shift_reg: entity work.shift_reg
-      generic  map(
-        DATA_WIDTH => DATA_WIDTH
-      )
-      port map (
-       clk       => clk,
-       rst_n       => reset_n,
-       -- inputs
-       d_in      => key,
-       load      => load_shift_reg,
-       shift     => shift,
-       -- output
-       d_out     => shift_reg_out
-      );
+    generic  map(
+      DATA_WIDTH => DATA_WIDTH
+    )
+    port map (
+      clk       => clk,
+      rst_n       => reset_n,
+      -- inputs
+      d_in      => key,
+      load      => load_shift_reg,
+      shift     => shift,
+      -- output
+      d_out     => shift_reg_out
+    );
 
 --------------------------------
 -- Finite State Machine Begin --
@@ -186,35 +172,33 @@ begin
     process(State, start, monPro1_done, monPro2_done, loop_counter, shift_reg_out, shift_reg_reduced) begin
         State_nxt <= State;
         case( State ) is
-            -- IDLE Description
             when STATE_IDLE =>
                 if(start='1') then
                     State_nxt <= STATE_START;
                 else
                     State_nxt <= STATE_IDLE;
                 end if;
-            -- START Description
+
             when STATE_START =>
                 if(monPro1_done='1') then
                     State_nxt <= STATE_START_DONE;
                 end if;
-            -- START DONEDescription
+
             when STATE_START_DONE =>
-                State_nxt <= STATE_CC_MODN;
-            -- ADD_AB Description
-            when STATE_CC_MODN =>
+                State_nxt <= STATE_CP_MODN;
+
+            when STATE_CP_MODN =>
                 if(monPro2_done='1' and (monPro1_done='1' or shift_reg_out(0)='0')) then
-                    State_nxt <= STATE_CC_MODN_DONE;
+                    State_nxt <= STATE_CP_MODN_DONE;
                 end if;
                 
-            -- ADD_AB Description
-            when STATE_CC_MODN_DONE =>
+            when STATE_CP_MODN_DONE =>
                 if(loop_counter=255 or shift_reg_reduced='0') then
                     State_nxt <= STATE_C1_MODN;
                 else
-                    State_nxt <= STATE_CC_MODN;
+                    State_nxt <= STATE_CP_MODN;
                 end if;
-            -- C1_MODN Description
+
             when STATE_C1_MODN =>
                 if(monPro1_done='1') then
                     State_nxt <= STATE_C1_MODN_DONE;
@@ -222,11 +206,10 @@ begin
             
             when STATE_C1_MODN_DONE =>
                 State_nxt <= STATE_DONE;
-            -- DONE Description
             
             when STATE_DONE =>
                 State_nxt <= STATE_IDLE;
-            -- Other Description
+
             when others =>
                 State_nxt <= STATE_IDLE;
         end case;
@@ -263,7 +246,7 @@ begin
                 P_reg_en <= '1';
                 P_nxt <= monPro1_out;
             
-            when STATE_CC_MODN =>
+            when STATE_CP_MODN =>
                 if(shift_reg_out(0)='1') then
                     monPro1_A_next <= cipher_reg;
                     monPro1_B_next <= P_reg;
@@ -273,7 +256,7 @@ begin
                 monPro2_B_next <= P_reg;
                 monPro2_start <= '1';
             
-            when STATE_CC_MODN_DONE =>
+            when STATE_CP_MODN_DONE =>
                 if(shift_reg_out(0)='1') then
                     cipher_reg_en <= '1';
                     cipher_nxt <= monPro1_out;
@@ -330,7 +313,7 @@ begin
         if(reset_n='0') then
             loop_counter <= (others => '0');
         elsif(clk'event and clk='1') then
-            if(State=STATE_CC_MODN_DONE) then
+            if(State=STATE_CP_MODN_DONE) then
                 loop_counter <= loop_counter + 1;
             elsif(State=STATE_IDLE) then
                 loop_counter <= (others => '0');

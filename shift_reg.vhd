@@ -1,46 +1,39 @@
-----------------------------------------------------------------------------------
--- Company:
--- Engineer:
---
--- Create Date: 15.10.2018 10:49:04
--- Design Name:
--- Module Name: shift_reg - Behavioral
--- Project Name:
--- Target Devices:
--- Tool Versions:
--- Description:
---
--- Dependencies:
---
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
---
-----------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Author       : Aleksander Skarnes, Eivind Erichsen and Halvor Horvei
+-- Organization : Norwegian University of Science and Technology (NTNU)
+--                Department of Electronic Systems
+--                https://www.ntnu.edu/ies
+-- Course       : TFE4141 Design of digital systems 1 (DDS1)
+-- Year         : 2018
+-- Project      : RSA accelerator
+-- Module       : Shift Register
+-- License      : This is free and unencumbered software released into the 
+--                public domain (UNLICENSE)
+--------------------------------------------------------------------------------
+-- Purpose: 
+--   Calculate the Montgomery modular product
+--   U = AB mod modulo.
+--------------------------------------------------------------------------------
 
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use WORK.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
 entity shift_reg is
     Generic (
        DATA_WIDTH : integer);
-    Port ( d_in  : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+    Port (
+           -- Input Data
+           d_in  : in     STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+           -- Output Data
            d_out : buffer STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
-           rst_n : in STD_LOGIC;
-           clk   : in STD_LOGIC;
-           shift : in STD_LOGIC;
-           load  : in STD_LOGIC);
+           -- Clock and Reset
+           rst_n : in     STD_LOGIC;
+           clk   : in     STD_LOGIC;
+           -- Controll Signals
+           shift : in     STD_LOGIC;
+           load  : in     STD_LOGIC);
 end shift_reg;
 
 architecture Behavioral of shift_reg is

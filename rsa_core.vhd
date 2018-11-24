@@ -10,10 +10,7 @@
 --                public domain (UNLICENSE)
 --------------------------------------------------------------------------------
 -- Purpose: 
---   RSA encryption core template. This core currently computes
---   C = M xor key_n
---
---   Replace/change this module so that it implements the function
+--   Calculate
 --   C = M**key_e mod key_n.
 --------------------------------------------------------------------------------
 library ieee;
@@ -86,17 +83,37 @@ architecture rtl of rsa_core is
     
     --signal send_msgin_ready: STD_LOGIC;
     signal ModExp_data_out : std_logic_vector(C_BLOCK_SIZE-1 downto 0);
+    signal msgout_valid_i : std_logic;
     
     signal test_reg: std_logic_vector(C_BLOCK_SIZE-1 downto 0); 
     
 begin
+  u_ModExp : entity modular_exponentiation 
+    generic  map(
+      DATA_WIDTH => C_BLOCK_SIZE
+    )
+    port map(
+    -- Clocks and resets
+    clk             => clk,
+    reset_n         => reset_n,
+    
+    -- Control Signals
+    start           => ModExp_start,
+    done            => ModExp_done,
+    
+    -- Inputs
+    message         => message_reg,
+    key             => key_e_d,
+    modulo          => key_n,
+    r_mod_n         => r_mod_n,
+    r2_mod_n        => r2_mod_n,
+    
+    -- Outputs
+    cipher          => ModExp_data_out
+    );
 
 -- Assignments
-    process(ModExp_data_out, msgout_ready) begin
-        for i in 0 to C_BLOCK_SIZE-1 loop
-            msgout_data(i) <= ModExp_data_out(i) and msgout_ready;
-        end loop;
-    end process;
+    msgout_valid <= msgout_valid_i;
     
     process(clk, reset_n) begin
         if(reset_n='0') then
@@ -149,8 +166,9 @@ begin
     
     process(State, msgin_data, msgin_last, msgin_valid, last_message_reg) begin
         msgin_ready <= '0';
-        msgout_valid <= '0';
+        msgout_valid_i <= '0';
         msgout_last <= '0';
+        msgout_data <= (others => '0');
         
         ModExp_start <= '0';
         message_nxt <= (others => '0');
@@ -171,84 +189,11 @@ begin
             when CALCULATE_CIPHER =>
                 ModExp_start <= '1';
             when SEND_CIPHER =>
-                msgout_valid <= '1';
+                msgout_valid_i <= '1';
                 msgout_last <= last_message_reg;
-                --if(msgout_ready='1') then
-                --    msgout_data <= cipher;
-                --end if;
+                msgout_data <= ModExp_data_out;
             when others =>
         end case;
     end process;
-
---    process(clk, reset_n) begin
---        if(reset_n='0') then
---            State <= STATE_IDLE;
---            message_reg <= (others => '0');
---            send_msgin_ready <= '0';
---            ModExp_start <= '0';
-            
---        elsif(clk'event and clk='1') then
---            case (State) is
---                when STATE_IDLE =>
---                    msgout_last <= '0';
---                    msgout_valid <= '0';
---                    send_msgin_ready <= '1';
-                    
---                    if(msgin_valid = '1') then
---                        State <= WAIT_FOR_MSG;
---                        message_reg <= msgin_data;
---                    end if;
-                    
---                when WAIT_FOR_MSG =>
-                
---                    if(msgin_valid = '0') then
---                        send_msgin_ready <= '0';
---                        State <= WAIT_FOR_CIPHER;
---                        ModExp_start <= '1';
---                    end if;
-                    
---                when WAIT_FOR_CIPHER =>
-                    
---                    ModExp_start <= '0';
---                    if(ModExp_done = '1') then
---                        State <= SEND_CIPHER;
---                        msgout_valid <= ModExp_done;
---                    end if;
-                
---                when SEND_CIPHER =>
---                    if(msgout_ready = '1') then
---                        State <= STATE_IDLE;
---                        msgout_last <= '1';
---                    end if;
-
-                    
---                when others =>
---                    msgout_valid <= '0';
-                    
---            end case;        
---        end if;
---    end process;    
- 
-  
-   u_ModExp : entity modular_exponentiation port map(
-  -- Clocks and resets
-  clk             => clk,
-  reset_n         => reset_n,
-  -- Control Signals
-  start           => ModExp_start,
-
-  --data_accepted   => monPro1_data_accepted,
-  -- Inputs
-  message         => message_reg,
-  key             => key_e_d,
-  modulo          => key_n,
-  r_mod_n         => r_mod_n,
-  r2_mod_n        => r2_mod_n,
- 
-  -- Outputs
-  cipher          => ModExp_data_out,
-  done            => ModExp_done
-);
-
 
 end rtl;
