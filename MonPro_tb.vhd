@@ -30,7 +30,7 @@ end modular_product_tb;
 
 architecture Behavioral of modular_product_tb is
       -- Constants
-    constant BLOCK_SIZE    : integer := 256;
+    constant DATA_WIDTH    : integer := 256;
     constant R_SIZE        : integer := 256;
     constant CLK_PERIOD    : time := 10 ns;
     constant RESET_TIME    : time := 10 ns;
@@ -40,41 +40,31 @@ architecture Behavioral of modular_product_tb is
     signal reset_n        : std_logic := '0';
     
     -- signal inputs
-    signal A        : STD_LOGIC_VECTOR (255 downto 0);
-    signal B        : STD_LOGIC_VECTOR (255 downto 0);
+    signal A        : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+    signal B        : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
     signal start    : STD_LOGIC;
     
     -- signal outputs
-    signal modulo     : STD_LOGIC_VECTOR (255 downto 0);
-    signal Product    : STD_LOGIC_VECTOR (255 downto 0);    
+    signal modulo     : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+    signal Product    : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);    
     signal done       : STD_LOGIC;
     
-    signal teststring1 : STD_LOGIC_VECTOR (255 downto 0);
-    signal teststring2 : STD_LOGIC_VECTOR (255 downto 0);
-    signal teststring3 : STD_LOGIC_VECTOR (255 downto 0);
-    signal teststring4 : STD_LOGIC_VECTOR (255 downto 0);
+    signal teststring1 : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+    signal teststring2 : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+    signal teststring3 : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+    signal teststring4 : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
     signal teststring5 : STD_LOGIC_VECTOR (255 downto 0);
     signal teststring6 : STD_LOGIC_VECTOR (255 downto 0);
-    
-    signal expected_product1 : STD_LOGIC_VECTOR (255 downto 0);
-    signal expected_product2 : STD_LOGIC_VECTOR (255 downto 0);
-    signal expected_product3 : STD_LOGIC_VECTOR (255 downto 0);
-    signal expected_product4 : STD_LOGIC_VECTOR (255 downto 0);
-    signal expected_product5 : STD_LOGIC_VECTOR (255 downto 0);
-    signal expected_product6 : STD_LOGIC_VECTOR (255 downto 0);
-    
-    signal zero_vector : STD_LOGIC_VECTOR (255 downto 0);
+
+    signal zero_vector : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
 
     signal testcaseA_counter : unsigned(2 downto 0);
     signal testcaseB_counter : unsigned(2 downto 0);
-    signal tb_done           : STD_LOGIC;
     
 begin
-
-
       dut: entity work.modular_product 
       generic  map(
-        DATA_WIDTH => BLOCK_SIZE,
+        DATA_WIDTH => DATA_WIDTH,
         R_SIZE     => R_SIZE
       )
       port map (
@@ -92,16 +82,17 @@ begin
         Product => Product
       );
       
+      -- Test strings from python script
       teststring1      <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
       teststring2      <= x"1010101010101010101010101010101010101010101010101010101010101010";
       teststring3      <= x"0000000000000000000000000000000000000000000000000000000000000000";
       teststring4      <= x"0b03764d2bd0d7650a94ec5c669cd45dfe3e2b7c5936702168bc67a1bd1db7b6";
       teststring5      <= x"ca5fe788135de9da1ebd6d0e2aa2cdfd19a6c5df172c5296f8c2426d2d765c5d";
       teststring6      <= x"203223e5dee6f728c01bd181668a89404de215c71e1c8f73f847968035be9127";
-      
       zero_vector      <= x"0000000000000000000000000000000000000000000000000000000000000000";
-      
+      -- constant modulo
       modulo <= x"99925173ad65686715385ea800cd28120288fc70a9bc98dd4c90d676f8ff768d";
+      
       -- Clock generation
       clk <= not clk after CLK_PERIOD/2;
     
@@ -117,24 +108,23 @@ begin
           if(reset_n = '0') then
             testcaseA_counter <= (others => '0');
             testcaseB_counter <= (others => '0');
-            tb_done <= '0';
+            
           elsif(clk'event and clk='1') then
-          
-          if(Done = '1') then
-          
-          if(testcaseA_counter = "010" or testcaseB_counter = "010") then
-              if(testcaseA_counter = "101") then
-                testcaseB_counter <= testcaseB_counter + 1;
-                testcaseA_counter <= (others => '0');
-              else
-                testcaseA_counter <= testcaseA_counter + 1;
-              end if;
-              assert Product = zero_vector
-                  report "Product did not match expected value"
-                  severity Failure;
-           else
+              if(Done = '1') then
+                  -- if one counter is 2 the output will be 0
+                  if(testcaseA_counter = "010" or testcaseB_counter = "010") then
+                      if(testcaseA_counter = "101") then
+                        testcaseB_counter <= testcaseB_counter + 1;
+                        testcaseA_counter <= (others => '0');
+                      else
+                        testcaseA_counter <= testcaseA_counter + 1;
+                      end if;
+                      assert Product = zero_vector
+                          report "Product did not match expected value"
+                          severity Failure;
+                   else
            
-                case testcaseB_counter is
+                    case testcaseB_counter is
                     
                     when "000" =>
                         testcaseA_counter <= testcaseA_counter + 1;
@@ -242,8 +232,8 @@ begin
                                 report "Product did not match expected value"
                                 severity Failure;
                                 
-                        elsif(testcaseA_counter = x"100") then
-                            assert Product = x"d6254e5eb95159849f04cd56d241c434d3373de447a1865cfdd0c84b80f569a"
+                        elsif(testcaseA_counter = "100") then
+                            assert Product = x"0d6254e5eb95159849f04cd56d241c434d3373de447a1865cfdd0c84b80f569a"
                                 report "Product did not match expected value"
                                 severity Failure;
                              --   
@@ -336,13 +326,5 @@ begin
            when others =>
         end case; 
       end process;
-    
-      -- Stimuli generation
-      stimuli_proc: process
-      begin
-      wait for 10*CLK_PERIOD;
-
-        wait;
-
-      end process;  
+     
 end Behavioral;
