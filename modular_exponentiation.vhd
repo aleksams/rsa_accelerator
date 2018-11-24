@@ -286,7 +286,7 @@ begin
 -- Finite State Machine End --
 ------------------------------
 
--- Cipher Register
+-- Cipher Text Register
     process(clk, reset_n) begin
         if(reset_n='0') then
             cipher_reg <= (others => '0');
@@ -297,16 +297,16 @@ begin
         end if;
     end process;
     
--- Message_bar Register
-        process(clk, reset_n) begin
-            if(reset_n='0') then
-                P_reg <= (others => '0');
-            elsif(clk'event and clk='1') then
-                if(P_reg_en='1') then
-                    P_reg <= P_nxt;
-                end if;
+-- P Register
+    process(clk, reset_n) begin
+        if(reset_n='0') then
+            P_reg <= (others => '0');
+        elsif(clk'event and clk='1') then
+            if(P_reg_en='1') then
+                P_reg <= P_nxt;
             end if;
-        end process;
+        end if;
+    end process;
 
 -- Loop Counter
     process(clk, reset_n) begin

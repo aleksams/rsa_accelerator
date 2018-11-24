@@ -81,13 +81,11 @@ architecture rtl of rsa_core is
     signal last_message_nxt : std_logic;
     signal last_message_reg_en : std_logic;
     
-    --signal send_msgin_ready: STD_LOGIC;
     signal ModExp_data_out : std_logic_vector(C_BLOCK_SIZE-1 downto 0);
-    signal msgout_valid_i : std_logic;
-    
-    signal test_reg: std_logic_vector(C_BLOCK_SIZE-1 downto 0); 
+    signal msgout_valid_i  : std_logic;
     
 begin
+
   u_ModExp : entity modular_exponentiation 
     generic  map(
       DATA_WIDTH => C_BLOCK_SIZE
