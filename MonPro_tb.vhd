@@ -1,22 +1,18 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 15.11.2018 09:04:26
--- Design Name: 
--- Module Name: MonPro_tb - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Author       : Aleksander Skarnes, Eivind Erichsen and Halvor Horvei
+-- Organization : Norwegian University of Science and Technology (NTNU)
+--                Department of Electronic Systems
+--                https://www.ntnu.edu/ies
+-- Course       : TFE4141 Design of digital systems 1 (DDS1)
+-- Year         : 2018
+-- Project      : RSA accelerator
+-- Module       : Modular Product - Testbench
+-- License      : This is free and unencumbered software released into the 
+--                public domain (UNLICENSE)
+--------------------------------------------------------------------------------
+-- Purpose: 
+--   Do functional verification of the Modular Product module.
+--------------------------------------------------------------------------------
 
 
 library IEEE;
