@@ -33,9 +33,11 @@ use WORK.ALL;
 --use UNISIM.VComponents.all;
 
 entity shift_reg is
-    Port ( d_in  : in STD_LOGIC_VECTOR (255 downto 0);
-           d_out : buffer STD_LOGIC_VECTOR (255 downto 0);
-           rst_n   : in STD_LOGIC;
+    Generic (
+       DATA_WIDTH : integer);
+    Port ( d_in  : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+           d_out : buffer STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
+           rst_n : in STD_LOGIC;
            clk   : in STD_LOGIC;
            shift : in STD_LOGIC;
            load  : in STD_LOGIC);
@@ -43,7 +45,7 @@ end shift_reg;
 
 architecture Behavioral of shift_reg is
 
-signal out_nxt : STD_LOGIC_VECTOR (255 downto 0);
+signal out_nxt : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
 
 begin
     process(clk, rst_n) begin
@@ -58,8 +60,8 @@ begin
         if(load='1') then
             out_nxt <= d_in;
         elsif(shift='1') then
-            out_nxt(254 downto 0) <= d_out(255 downto 1);
-            out_nxt(255) <= '0';
+            out_nxt(DATA_WIDTH-2 downto 0) <= d_out(DATA_WIDTH-1 downto 1);
+            out_nxt(DATA_WIDTH-1) <= '0';
         else
             out_nxt <= d_out;
         end if;

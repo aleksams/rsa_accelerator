@@ -24,18 +24,11 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use WORK.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
 
 entity modular_product is
     Generic (
-           DATA_WIDTH : integer := 256);
+           DATA_WIDTH : integer;
+           R_SIZE     : integer);
     Port (
            -- INPUT VALUES
            A        : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
@@ -60,50 +53,44 @@ architecture Behavioral of modular_product is
     
     -- STATE SIGNALS
     signal State, State_nxt : State_Type;
-
-    -- Look ahed logic
-    signal u_odd : STD_LOGIC;
     
     -- Internal
     signal done_i : STD_LOGIC;
 
     -- Shift Register for A
     signal load_shift_reg : STD_LOGIC;
-    signal shift          : STD_LOGIC;
-    signal shift_reg_out  : STD_LOGIC_VECTOR (255 downto 0);
+    signal shift          : STD_LOGIC; 
+    signal shift_reg_out  : STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
 
     -- Product Register
-    signal product_nxt    : STD_LOGIC_VECTOR (257 downto 0);
-    signal product_reg    : STD_LOGIC_VECTOR (257 downto 0);
+    signal product_nxt    : STD_LOGIC_VECTOR (DATA_WIDTH+1 downto 0);
+    signal product_reg    : STD_LOGIC_VECTOR (DATA_WIDTH+1 downto 0); 
     signal product_reg_en : STD_LOGIC;
 
     -- Loop control
-    signal loop_counter : UNSIGNED (9 downto 0); -- count to 256
+    signal loop_counter : UNSIGNED (7 downto 0);
     signal loop_reg_en  : STD_LOGIC;
-
+    
 begin
 
-    --u_odd <= product_reg(0) xor (data_shift_reg(0) and B(0));
--- Assignments
-    --process(product_reg, done_i) begin
-    --    for i in 0 to 255 loop
-    --        product(i) <= done_i and product_reg(i);
-    --    end loop;
-    --end process;
-    product <= product_reg(255 downto 0);
+
+    product <= product_reg(DATA_WIDTH-1 downto 0);
     done <= done_i;
 
 -- Shift Register Entity for A
     u_A_shift_reg: entity work.shift_reg
+        generic  map(
+          DATA_WIDTH => DATA_WIDTH
+        )
         port map (
          clk       => clk,
-         rst_n       => reset_n,
+         rst_n     => reset_n,
          -- inputs
-         d_in      => A(255 downto 0),
+         d_in      => A(DATA_WIDTH-1 downto 0),
          load      => load_shift_reg,
          shift     => shift,
          -- output
-         d_out     => shift_reg_out (255 downto 0)
+         d_out     => shift_reg_out (DATA_WIDTH-1 downto 0)
         );
         
 --------------------------------
@@ -120,7 +107,8 @@ begin
     end process;
     
 -- Next State
-    process(State, start) begin
+    process(State, start, loop_counter) begin
+        State_nxt <= State;
         case( State ) is
             -- IDLE Description
             when STATE_IDLE =>
@@ -140,7 +128,7 @@ begin
                 State_nxt <= STATE_SHIFT;
             -- SHIFT Description
             when STATE_SHIFT =>
-                if(loop_counter=255) then
+                if(loop_counter=R_SIZE-1) then
                     State_nxt <= STATE_SUB_N;
                 else
                     State_nxt <= STATE_ADD_AB;
@@ -160,7 +148,7 @@ begin
     end process;
 
 -- System controll
-    process(State, loop_counter, shift_reg_out, product_reg) begin
+    process(State, loop_counter, shift_reg_out, product_reg, B, modulo) begin
         load_shift_reg <= '0';
         shift          <= '0';
         product_reg_en <= '0';
@@ -186,7 +174,7 @@ begin
                 shift <= '1';
                 loop_reg_en <= '1';
                 product_reg_en <= '1';
-                product_nxt <= "0" & product_reg(257 downto 1);
+                product_nxt <= "0" & product_reg(DATA_WIDTH+1 downto 1);
             when STATE_SUB_N =>
                 product_reg_en <= '1';
                 if(UNSIGNED(product_reg) >= UNSIGNED(modulo)) then

@@ -19,6 +19,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.all;
 entity rsa_core is
   generic (
 	-- Users to add parameters here
@@ -83,15 +84,19 @@ architecture rtl of rsa_core is
     signal last_message_nxt : std_logic;
     signal last_message_reg_en : std_logic;
     
-    signal send_msgin_ready: STD_LOGIC;
+    --signal send_msgin_ready: STD_LOGIC;
+    signal ModExp_data_out : std_logic_vector(C_BLOCK_SIZE-1 downto 0);
     
     signal test_reg: std_logic_vector(C_BLOCK_SIZE-1 downto 0); 
     
 begin
 
 -- Assignments
-    
-    --msgout_data <= ModExp_cipher_out and msgout_ready;
+    process(ModExp_data_out, msgout_ready) begin
+        for i in 0 to C_BLOCK_SIZE-1 loop
+            msgout_data(i) <= ModExp_data_out(i) and msgout_ready;
+        end loop;
+    end process;
     
     process(clk, reset_n) begin
         if(reset_n='0') then
@@ -123,6 +128,7 @@ begin
     end process;
     
     process(State, msgin_valid, ModExp_done, msgout_ready) begin
+        State_nxt <= State;
         case(State) is 
             when GET_MSG =>
                 if(msgin_valid='1') then
@@ -224,7 +230,7 @@ begin
 --    end process;    
  
   
-   u_ModExp : entity work.modular_exponentiation port map(
+   u_ModExp : entity modular_exponentiation port map(
   -- Clocks and resets
   clk             => clk,
   reset_n         => reset_n,
@@ -240,7 +246,7 @@ begin
   r2_mod_n        => r2_mod_n,
  
   -- Outputs
-  cipher          => msgout_data,
+  cipher          => ModExp_data_out,
   done            => ModExp_done
 );
 
