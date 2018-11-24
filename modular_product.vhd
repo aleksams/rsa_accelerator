@@ -24,14 +24,6 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use WORK.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
 
 entity modular_product is
     Generic (
@@ -76,16 +68,9 @@ architecture Behavioral of modular_product is
     signal product_reg_en : STD_LOGIC;
 
     -- Loop control
-    signal loop_counter : UNSIGNED (7 downto 0); -- count to 256
+    signal loop_counter : UNSIGNED (7 downto 0);
     signal loop_reg_en  : STD_LOGIC;
     
-    -- regs
-    -- product_reg: 258
-    -- shift_reg_out: 256
-    -- State: 3
-    -- loop_counter: 10
-    -- totalt 527
-
 begin
 
 

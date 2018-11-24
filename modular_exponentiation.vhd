@@ -37,7 +37,7 @@ use work.all;
 entity modular_exponentiation is
     Generic (
        DATA_WIDTH : integer := 256;
-       R_SIZE     : integer := 7);
+       R_SIZE     : integer := 256);
     Port ( 
            -- Clock and Reset
            clk           : in STD_LOGIC;
@@ -103,14 +103,12 @@ architecture Behavioral of modular_exponentiation is
     signal loop_counter : UNSIGNED (7 downto 0); -- count to 256
     signal loop_reg_en  : STD_LOGIC;
     
-    signal r : STD_LOGIC_VECTOR (DATA_WIDTH downto 0);
 begin
 
 -- Assignments
     shift_reg_reduced <= or_reduce(shift_reg_out);
     cipher <= cipher_reg;
     done <= done_i;
-    r <= std_logic_vector(unsigned("0" & modulo)+unsigned("0" & r_mod_n));
 
 -- Instantiate the MonPros
   u_Monpro_1 : entity work.modular_product 
@@ -188,44 +186,44 @@ begin
     process(State, start, monPro1_done, monPro2_done, loop_counter, shift_reg_out, shift_reg_reduced) begin
         State_nxt <= State;
         case( State ) is
-            --1 IDLE Description
+            -- IDLE Description
             when STATE_IDLE =>
                 if(start='1') then
                     State_nxt <= STATE_START;
                 else
                     State_nxt <= STATE_IDLE;
                 end if;
-            --2 START Description
+            -- START Description
             when STATE_START =>
                 if(monPro1_done='1') then
                     State_nxt <= STATE_START_DONE;
                 end if;
-            --3
+            -- START DONEDescription
             when STATE_START_DONE =>
                 State_nxt <= STATE_CC_MODN;
-            --4 ADD_AB Description
+            -- ADD_AB Description
             when STATE_CC_MODN =>
                 if(monPro2_done='1' and (monPro1_done='1' or shift_reg_out(0)='0')) then
                     State_nxt <= STATE_CC_MODN_DONE;
                 end if;
                 
-            --5 ADD_AB Description
+            -- ADD_AB Description
             when STATE_CC_MODN_DONE =>
                 if(loop_counter=255 or shift_reg_reduced='0') then
                     State_nxt <= STATE_C1_MODN;
                 else
                     State_nxt <= STATE_CC_MODN;
                 end if;
-            --6
+            -- C1_MODN Description
             when STATE_C1_MODN =>
                 if(monPro1_done='1') then
                     State_nxt <= STATE_C1_MODN_DONE;
                 end if;
-            --7
+            
             when STATE_C1_MODN_DONE =>
                 State_nxt <= STATE_DONE;
             -- DONE Description
-            --8
+            
             when STATE_DONE =>
                 State_nxt <= STATE_IDLE;
             -- Other Description
@@ -252,19 +250,19 @@ begin
         monPro2_B_next     <= (others => '0');
         
         case(State) is
-            --1
+            
             when STATE_START =>
                 load_shift_reg <= '1';
                 monPro1_A_next <= message;
                 monPro1_B_next <= r2_mod_n;
                 monPro1_start  <= '1';
-            --2
+            
             when STATE_START_DONE =>
                 cipher_reg_en <= '1';
                 cipher_nxt <= r_mod_n;
                 P_reg_en <= '1';
                 P_nxt <= monPro1_out;
-            --3
+            
             when STATE_CC_MODN =>
                 if(shift_reg_out(0)='1') then
                     monPro1_A_next <= cipher_reg;
@@ -274,7 +272,7 @@ begin
                 monPro2_A_next <= P_reg;
                 monPro2_B_next <= P_reg;
                 monPro2_start <= '1';
-            --4
+            
             when STATE_CC_MODN_DONE =>
                 if(shift_reg_out(0)='1') then
                     cipher_reg_en <= '1';
@@ -283,21 +281,20 @@ begin
                 P_reg_en <= '1';
                 P_nxt <= monPro2_out;
                 shift <= '1';
-            --5 
+            
             when STATE_C1_MODN =>
                 monPro1_A_next <= cipher_reg;
                 monPro1_B_next(0) <= '1';
                 monPro1_B_next(255 downto 1) <= (others => '0');
                 monPro1_start <= '1';
-            --6
+            
             when STATE_C1_MODN_DONE =>
                 cipher_reg_en <= '1';
                 cipher_nxt <= monPro1_out;
-            --7
+            
             when STATE_DONE =>
                 done_i <= '1';
-            --8
-            when STATE_IDLE =>
+            
             when others =>
         end case;
     end process;
