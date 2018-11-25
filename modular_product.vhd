@@ -24,8 +24,8 @@ use WORK.ALL;
 
 entity modular_product is
     Generic (
-           DATA_WIDTH : integer;
-           R_SIZE     : integer);
+           DATA_WIDTH : integer := 256;
+           R_SIZE     : integer := 256);
     Port (
            -- INPUT VALUES
            A        : in STD_LOGIC_VECTOR (DATA_WIDTH-1 downto 0);
