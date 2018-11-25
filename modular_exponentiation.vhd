@@ -13,7 +13,7 @@
 -- Purpose: 
 --   Calculate
 --   C = M**key mod modulo
---   using the LR Binary Method.
+--   using the RL Binary Method.
 --------------------------------------------------------------------------------
 
 library IEEE;
